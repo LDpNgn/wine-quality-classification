@@ -1,0 +1,119 @@
+
+Bản đề xuất phân tích và xử lý số liệu
+
+I. EDA
+
+- Thống kê mô tả toàn bộ các biến trên toàn bộ tập dữ liệu tổng hợp của 2 file red-wine và white-wine.
+	+) Xu hướng trung tâm: trung bình, trung vị, ...
+	+) Độ biến thiên: độ lệch chuẩn, min-max, IQR, ...
+	+) Phân phối dữ liệu.
+	+) Dùng Bootstrap để khảo sát phân phối mẫu, khoảng tin cậy, ... cho các thống kê hoặc các thông số cần quan tâm của dữ liệu.
+
+- Trực quan hoá dữ liệu:
+	+) Sử dụng các biểu đồ: Histogram, Boxplot, Density, Scatter Plot để phát hiện patterns cũng như các điểm bất thường, điểm ngoại lai trong bộ dữ liệu.
+	+) Sử dụng Heatmap trực quan hóa ma trận tương quan để xác định mối quan hệ, sự tương quan và tương tác giữa các biến với nhau.
+
+- Phân tích Pearson để tìm các yếu tố có liên hệ mạnh mẽ với chất lượng rượu.
+
+- EDA riêng biệt cho 2 loại: So sánh phân bố và mối quan hệ giữa các biến cho hai loại rượu vang để xác định điểm khác biệt và tương đồng.
+
+- Viết nhận xét, xây dựng các giả thuyết (để A/B testing).
+
+
+
+II. Preprocessing:
+
+- Loại bỏ các dữ liệu bị trùng lặp (Drop duplicates).
+- Sử dụng các phương pháp Imputation để sử lý missing values.
+- Xứ lý dữ liệu mất cân bàng sử dụng các phương pháp Over-sampling và Under-sampling.
+
+
+
+III. Kiểm định giả thuyết
+
+- Đối với những biến quan trọng, có ảnh hưởng đáng kể đến chất lượng rượu vang, tiến hành A/B test để so sánh sự khác nhau (về trung bình, phương sai, tương quan (correlation), ...) giữa các thành phần hoá học của 2 loại rượu.
+- Sử dụng biểu đồ Violin để tìm ra các giả thuyết, giả định về dữ liệu.
+- Kiểm chứng các giả thuyết và đối thuyết được đặt ra bằng A/B testing sử dụng Permutation test, có thể kết hợp thêm với Bootstrap.
+- Có thể sử dụng Permutation ANOVA để thực hiện A/B testing cho nhiều nhóm.
+
+
+
+IV. Xây dựng mô hình
+
+- Chia dữ liệu thành 2 tập: 
+	+) Train set: để huấn luyện mô hình.
+	+) Test set: để đánh giá mô hình.
+
+1. Regression Models
+
+- Xây dựng các mô hình hồi quy dự đoán chất lượng rượu vang theo các biến thu thập được trong dữ liệu.
+	+) Linear Regression
+	+) Ridge Regression
+	+) Lasso Regression
+	+) Hồi quy đa thức
+	+) B-splines
+	+) GLAM (nếu có sự tương tác giữa 2 biến)
+
+- Sử dụng các phương pháp lựa chọn mô hình để tìm ra tập con tốt nhất cho các mô hình hổi quy:
+	+) Hồi quy từng bước cho Linear Regression.
+	+) Phương pháp co hệ số cho Ridge Regression và Lasso Regression.
+
+- Thực hiện các thống kê suy luận cho các mô hình vừa xây dựng (khoảng tin cậy cho hệ số của mô hình, khoảng tiên đoán cho chất lượng rượu vang, ...) sử dụng phương pháp Bootstrap
+
+- Đánh giá mô hình
+	+) Sử dụng các chỉ số: r-squared-adj, r-squared, MAE, MSE, RMSE, ...
+
+- Chuẩn đoán thặng dư mô hình
+	+) Kiểm tra tính tuyến tính của mô hình sử dụng biểu đồ Residuals vs Fitted.
+	+) Kiêm tra tính tuyến tính từng phần của mô hình sử dụng biểu đồ thặng dư từng phần (Partial Residual Plots).
+	+) Kiểm tra tính đồng nhất phương sai sử dụng biểu đồ Scale-Location.
+	+) Kiểm tra điểm ngoại lai trong mô hình.
+
+- Nhận xét và rút ra kết luận cho từng mô hình
+	+) Xác định các features quan trọng có ảnh hưởng đến chất lượng rượu vang.
+	+) So sánh các mô hình.
+
+2. Classification Models (phân loại loại rượu và phân loại chất lượng rượu)
+
+- Xây dựng và huấn luyện mô hình: sử dụng các thuật toán phân loại.
+	+) Logistic -> chạy boostrap kiểm định hệ số
+	+) Naive Bayes
+	+) LDA và QDA
+	+) Multinominal Logistic
+
+- Đánh giá độ chính xác của mô hình:
+	+) phân tích đường cong (ROC)
+	+) diện tích dưới đường cong (AUC)
+
+- Nhận xét và rút ra kết luận cho từng mô hình.
+
+
+
+
+---------------------------  CÁC MỤC TIÊU PHÂN TÍCH CẦN ĐẠT ĐƯỢC  ---------------------------
+
+* Mục tiêu 1: Xác định các feature quan trọng có ảnh hưởng đáng kể đến chất lượng rượu vang.
+
+Để xác định chính xác những thuộc tính hoá lý nào của rượu vang, có thể kể đến như độ axit, lượng đường, hàm lượng cồn, sulphates, độ pH và các thuộc tính khác nữa có ảnh hưởng như thế nào đến hương vị rượu vang.
+
+
+* Mục tiêu 2: Xây dựng mô hình hồi quy dự đoán chất lượng rượu.
+
+Mục tiêu là tạo ra và tối ưu hóa mô hình hồi quy có thể dự đoán điểm chất lượng của rượu vang dựa trên các thuộc tính hóa lý cho trước, từ đó xác định được các features nào là quan trọng và có ảnh hưởng đến chất lượng rượu vang.
+
+
+* Mục tiêu 3: Xây dựng mô hình phân loại dự đoán loại rượu và phân loại dự đoán chất lượng rượu.
+
+Mục tiêu là tạo ra một mô hình phân loại có thể xác định rượu vang đỏ và rượu vang trắng, cũng như phân loại chất lượng rượu một cách đáng tin cậy dựa trên các đặc tính định lượng (độ axit, nồng độ cồn và lượng đường).
+
+
+* Mục tiêu 4: Đề ra các chiến lược cải tiến sản phẩm và chiến lược kinh doanh.
+
+
+
+
+
+
+
+
+
