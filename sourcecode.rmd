@@ -1,0 +1,2111 @@
+
+---
+title: 'Project 1: Phân loại chất lượng rượu vang'
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+date: "Final project - Xử lý số liệu thống kê - Nhóm L"
+---
+
+## Bản đề xuất phân tích
+
+### 1. Mục tiêu phân tích cần đạt được
+
+
+**Mục tiêu 1** : Xác định các feature quan trọng có ảnh hưởng đáng kể đến chất lượng rượu vang.
+
+Để xác định chính xác những thuộc tính hoá lý nào của rượu vang, có thể kể đến như độ axit, lượng đường, hàm lượng cồn, sulphates, độ pH và các thuộc tính khác nữa có ảnh hưởng như thế nào đến hương vị rượu vang.
+
+
+**Mục tiêu 2**: Xây dựng mô hình hồi quy dự đoán chất lượng rượu vang.
+
+Mục tiêu là tạo ra và tối ưu hóa mô hình hồi quy có thể dự đoán điểm chất lượng của rượu vang dựa trên các thuộc tính hóa lý cho trước, từ đó xác định được các features nào là quan trọng và có ảnh hưởng đến chất lượng rượu vang.
+
+
+**Mục tiêu 3**: Xây dựng mô hình phân loại dự đoán chất lượng rượu vang.
+
+Mục tiêu là tạo ra một mô hình phân loại chất lượng rượu vang một cách đáng tin cậy dựa trên các đặc tính định lượng (độ axit, nồng độ cồn, lượng đường, ...).
+
+
+**Mục tiêu 4**: Đề ra các chiến lược cải tiến sản phẩm và chiến lược kinh doanh dựa trên các insight có được từ quá trình phân tích.
+
+
+### 2. Đề xuất các phương pháp và chiến lược phân tích tương ứng
+
+
+| Phương pháp | Chiến lược phân tích | Chi tiết |
+|---|---|---|
+| EDA | Thống kê mô tả toàn bộ các biến trên toàn bộ tập dữ liệu tổng hợp của 2 file red-wine và white-wine | +) Xu hướng trung tâm: mean, median, ... <br>+) Độ biến thiên: std, min-max, IQR, ... <br>+) Phân phối dữ liệu. <br>+) Dùng Bootstrap để khảo sát phân phối mẫu, khoảng tin cậy, ... cho các thống kê hoặc các thông số cần quan tâm của dữ liệu. |
+| | Trực quan hoá dữ liệu | +) Sử dụng các biểu đồ: Histogram, Boxplot, Density, Scatter Plot để phát hiện patterns cũng như các điểm bất thường, điểm ngoại lai trong bộ dữ liệu.<br>+) Sử dụng Heatmap trực quan hóa ma trận tương quan để xác định mối quan hệ, sự tương quan và tương tác giữa các biến với nhau |
+|Preprocessing |Xử lý missing values và duplicates ||
+||Xử lý imbalanced data|Xứ lý dữ liệu mất cân bàng sử dụng các phương pháp Over-sampling và Under-sampling |
+|Kiểm định giả thuyết|Kiểm định trung bình  |Kiểm định trung bình cho các đặc trưng giữa hai loại rượu xem chúng có khác nhau hay không bằng Bootstrap Permutation Test |
+||kiểm định ANOVA|Kiểm định ANOVA cho các đặc trưng của rượu giữa rượu có chất lượng khác nhau, xem chúng có khác nhau không|
+|Xây dựng mô hình |Xây dựng mô hình |+) Train set: để huấn luyện mô hình. <br>+) Test set: để đánh giá mô hình. |
+|Regression Models|Xây dựng các mô hình hồi quy dự đoán chất lượng rượu vang theo các biến thu thập được trong dữ liệu|+) Linear Regression <br>+) Ridge Regression <br>+) Hồi quy đa thức |
+||Sử dụng các phương pháp lựa chọn mô hình để tìm ra tập con tốt nhất cho các mô hình hổi quy|+) Hồi quy từng bước cho Linear Regression.<br>+) Phương pháp co hệ số cho Ridge Regression|
+||Thực hiện các thống kê suy luận cho các mô hình vừa xây dựng|(khoảng tin cậy cho hệ số của mô hình, khoảng tiên đoán cho chất lượng rượu vang, ...) sử dụng phương pháp Bootstrap |
+||Đánh giá |Sử dụng các chỉ số: r-squared-adj, r-squared, MAE, MSE, RMSE, accuracy, ...|
+||Chuẩn đoán thặng dư mô hình |+) Kiểm tra tính tuyến tính của mô hình sử dụng biểu đồ Residuals vs Fitted. <br>+) Kiêm tra tính tuyến tính từng phần của mô hình sử dụng biểu đồ thặng dư từng phần (Partial Residual Plots). <br>+) Kiểm tra tính đồng nhất phương sai sử dụng biểu đồ Scale-Location. <br>+) Kiểm tra điểm ngoại lai trong mô hình|
+||Nhận xét và rút ra kết luận cho từng mô hình|+) Xác định các features quan trọng có ảnh hưởng đến chất lượng rượu vang. <br>+) So sánh các mô hình |
+|Classification Models (phân loại chất lượng rượu)|Xây dựng và huấn luyện mô hình |+) Naive Bayes <br>+) LDA <br>+) Multinominal Logistic |
+||Nhận xét và rút ra kết luận cho từng mô hình||
+
+
+
+# Thực hiện phân tích với R
+
+## Đọc dữ liệu và import thư viện cần sử dụng
+
+
+```{r}
+library(janitor)
+library(tidyverse)
+library(dplyr)
+library(corrplot)
+library(ROSE)
+library(leaps)
+library(boot)
+library(ggplot2)
+library(nnet)
+library(caret)
+library(gridExtra)
+library(klaR)
+library(caTools)
+library(mgcv)
+library(glmnet)
+library(Hmisc)
+library(psych)
+set.seed(21)
+```
+
+```{r}
+red_data <- read.csv(file = "datasets/winequality-red.csv", sep=";") |> janitor::clean_names() 
+white_data <- read.csv(file = "datasets/winequality-white.csv") |> janitor::clean_names() 
+
+# add categorical varialbles to both sets
+red_data['color'] <- 'red'
+white_data['color'] <- 'white'
+
+# merge red wine and white wine datasets
+data <- rbind(red_data, white_data)
+```
+
+```{r}
+head(data)
+```
+
+# **I. EDA**
+
+## I.1. Thống kê mô tả
+
+```{r}
+glimpse(data)
+```
+
+Dữ liệu gồm mẫu thử của 1599 mẫu rượu vang đỏ và 4898 mẫu rượu vang trắng, được tổng hợp từ 02 file dữ liệu winequality-red.csv và winequality-white.csv, tương ứng cho hai loại rượu vang đỏ và vang trắng, các biến bao gồm:
+
+• fixed acidity - g(tartaric acid)/dm3;
+
+• volatile acidity - g(acetic acid)/dm3;
+
+• citric acid - g/dm3;
+
+• residual sugar - g/dm3;
+
+• chlorides - g(sodium chloride)/dm3;
+
+• free sulfur dioxide - mg/dm3;
+
+• total sulfur dioxide - mg/dm3;
+
+• density - mg/dm3;
+
+• pH;
+
+• sulphates - g(potassium sulphate)/dm3;
+
+• alcohol - % nồng độ cồn;
+
+• quality - điểm chất lượng.
+
+### Lập bảng thống kê
+
+```{r}
+#sử dụng thư viện
+describe(data)
+```
+
+```{r}
+#tự code tay
+descriptive_statistics <- function (data) {
+  data_stats <- data |>
+    summarise(across(where(is.numeric), list(
+      mean = mean, 
+      median = median, 
+      sd = sd, 
+      min = min, 
+      max = max,
+      iqr = IQR,
+      n = ~n()
+    )))
+
+  data_stats_tidy <- data_stats |>
+    gather(TEN, GIA_TRI) |>
+    extract(TEN, into = c("BIEN", "THONG_KE"), regex = "^(.*)_(.*)$") |>
+    spread(THONG_KE, GIA_TRI) |>
+    dplyr::select(BIEN,n, mean, median, sd, min, max, iqr)
+  
+  return (data_stats_tidy)
+}
+
+data_summary <- descriptive_statistics(data)
+print.data.frame(data_summary, digits = 2)
+```
+## I.2. Trực quan hoá dữ liệu
+
+### I.2.1. Khảo sát phân phối của dữ liệu
+
+#### a. Kiểm tra sự cân bằng của dữ liệu
+
+```{r}
+ggplot(data, aes(x = color, fill = color)) +
+  geom_bar() +
+  labs(
+    title = "Number of red/white wine in dataset",
+    x = "Wine type",
+    y = "Count"
+  ) +
+  theme_bw()
+```
+```{r}
+table(data$color)
+```
+
+Có thể thấy số lượng mẫu lớp white nhiều gấp ba lần số lượng mẫu lớp red, nên
+đây là một bộ dữ liệu không cân bằng (imbalanced data) khi lượng mẫu trong các
+lớp không bằng nhau.
+
+#### b. Kiểm tra sự phân bố của chất lượng rượu 
+
+```{r}
+ggplot(data, aes(x = quality)) +
+  scale_x_continuous(breaks = seq(min(data$quality), max(data$quality), by = 1)) +
+  geom_bar(fill = "lightblue", color = "black") +
+  theme_bw()
+```
+
+```{r}
+table(data$quality)
+```
+Đa số dữ liệu có quality trong khoảng [5,7], cực ít dữ liệu có giá trị quality bé hơn 3 và 
+có một số ít dữ liệu có giá trị quality lớn hơn 8.
+
+=> Để kiểm tra, ta sử dụng bootstrap để ước lượng phân phối mẫu và khoảng tin cậy cho quality và
+các biến khác trong tập dữ liệu.
+
+#### c. Bootstrap
+
+```{r}
+# Hàm thực hiện boostrap, vẽ histogram và tính khoảng tin cậy
+plot_bootstrap_hist <- function(data, feature, R = 1000, conf = 0.95) {
+  
+  boot_mu_fun <- function(data, ind) {
+    data_new <- data[ind]
+    out <- mean(data_new)
+    return(out)
+  }
+  
+  # Thực hiện bootstrap
+  set.seed(34)
+  out <- boot(data[[feature]], statistic = boot_mu_fun, R = R)
+  
+  # vẽ histogram
+  p <- ggplot(data = data.frame(t = out$t), mapping = aes(x = t)) +
+    geom_histogram(fill = "gray80", color = "black", bins = 20) +
+    geom_vline(xintercept = out$t0, color = "blue", linetype = "dashed", linewidth = 1) +
+    geom_vline(xintercept = quantile(out$t, c((1 - conf) / 2, 1 - (1 - conf) / 2)), color = "red", linetype = "dashed", linewidth = 1) +
+    xlab(paste("Bootstrap Mean of", feature)) + ylab("Frequency") +
+    theme_bw()
+  
+  boot_ci <- boot.ci(out, type = "perc", conf = conf)
+  
+  return(list(plot = p, boot_ci = boot_ci))
+}
+```
+
+```{r}
+features <- colnames(data)
+features <- setdiff(features, "color")
+features
+```
+
+Boostrap cho quality
+
+```{r}
+result <- plot_bootstrap_hist(data, "quality")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+Có thể thấy, phân phối mẫu của trung bình mẫu của quality có dạng phân phối chuẩn, với trung bình là 5.82, và độ tin cậy 95% cho khoảng tin cậy từ 5.797 -> 5.841 của chất lượng.
+
+Tương tự, ta cũng có thể kiểm tra phân phối mẫu và khoảng tin cậy cho các biến còn lại.
+
+Boostrap cho fixed_acidity
+
+```{r}
+result <- plot_bootstrap_hist(data, "fixed_acidity")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+
+Boostrap cho volatile_acidity
+
+```{r}
+result <- plot_bootstrap_hist(data, "volatile_acidity")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+Boostrap cho citric_acid
+
+```{r}
+result <- plot_bootstrap_hist(data, "citric_acid")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+Boostrap cho residual_sugar
+
+```{r}
+result <- plot_bootstrap_hist(data, "residual_sugar")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+Boostrap cho chlorides
+
+```{r}
+result <- plot_bootstrap_hist(data, "chlorides")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+Boostrap cho free_sulfur_dioxide
+
+```{r}
+result <- plot_bootstrap_hist(data, "free_sulfur_dioxide")
+result$plot
+
+```
+
+```{r}
+result$boot_ci
+```
+
+Boostrap cho total_sulfur_dioxide
+
+```{r}
+result <- plot_bootstrap_hist(data, "total_sulfur_dioxide")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+
+Boostrap cho density
+
+```{r}
+result <- plot_bootstrap_hist(data, "density")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+
+Boostrap cho p_h
+
+```{r}
+result <- plot_bootstrap_hist(data, "p_h")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+
+Boostrap cho sulphates
+
+```{r}
+result <- plot_bootstrap_hist(data, "sulphates")
+result$plot
+```
+
+```{r}
+result$boot_ci
+```
+
+Boostrap cho alcohol
+
+```{r}
+result <- plot_bootstrap_hist(data, "alcohol")
+result$plot
+
+```
+
+```{r}
+result$boot_ci
+```
+#### d. Histogram và Density
+
+```{r}
+plot_distribution <- function(data, feature) {
+  mean_value <- mean(data[[feature]], na.rm = TRUE)
+  
+  ggplot(data, aes_string(x = feature)) +
+    geom_histogram(aes(y = ..density.., fill = "Histogram"), color = "black", alpha = 0.7, bins = 65) +
+    geom_density(aes(color = "Density"), bw = "nrd0", kernel = "gaussian") +
+    geom_vline(aes(xintercept = mean_value, color = "Mean Value"), linetype = "dashed", size = 1) +
+    scale_fill_manual(name = "Legend", values = c("Histogram" = "white")) +
+    scale_color_manual(name = "Legend", values = c("Density" = "blue", "Mean Value" = "red")) +
+    labs(title = paste("Explore the distribution for", feature),
+         x = feature,
+         y = "Density") +  
+    theme(legend.position = "top")
+}
+```
+
+```{r}
+plot_distribution(data, "fixed_acidity")
+```
+
+```{r}
+plot_distribution(data, "volatile_acidity")
+```
+
+Hai biến fixed và volatile acidity có phân phối lệch phải với đuôi dài.
+
+```{r}
+plot_distribution(data, "citric_acid")
+```
+
+Trong khi đó, phân phối của citric acid có hình dạng 2 đỉnh (có thể do hai loại rượu có nồng độ ciric khác nhau) và một số outliers ở rìa.
+Một vài nồng độ cao bất thường từ khoảng 0.0 -> 0.5 thể hiện có một vài nồng độ cụ thể phổ biến hơn các nồng độ khác.
+
+```{r}
+plot_distribution(data, "residual_sugar")
+```
+
+Phân phối của residual sugar bị lệch phải nặng.
+
+```{r}
+plot_distribution(data, "chlorides")
+```
+
+Phân phối của chlorides có 2 đỉnh có thể ứng với xu hướng của hai loại rượu, có đuôi đài từ 0.3 -> 10, có thể có sự xuất hiện của outliers.
+
+```{r}
+plot_distribution(data, "free_sulfur_dioxide")
+```
+
+```{r}
+plot_distribution(data, "total_sulfur_dioxide")
+```
+
+Cả hai phân phối free và total SO2 đều bị lệch phải. Trong đó:
+  - free SO2 có nhiều dạng gai (đỉnh con) thể hiện một số nồng độ SO2 phổ biến hơn phần còn lại.
+  - total SO2 có hai đỉnh rõ rệt ứng với hai loại rượu.
+
+```{r}
+plot_distribution(data, "density")
+```
+
+```{r}
+plot_distribution(data, "sulphates")
+```
+
+Density và Sulphates có đuôi dài (có thể là outliers).
+
+```{r}
+plot_distribution(data, "p_h")
+```
+
+pH có phân phối gần giống phân phối chuẩn, cho thấy hai loại rượu có nồng độ pH gần giống nhau.
+
+```{r}
+plot_distribution(data, "alcohol")
+```
+
+Alcohol bị lệch phải nhẹ, với một số nồng độ cao bất thường so với phần còn lại
+
+#### e. Sự tương quan giữa các biến
+
+```{r}
+numeric_columns <- data |> dplyr::select(where(is.numeric))
+
+corr_matrix <- cor(numeric_columns, method = "pearson")
+corrplot(corr_matrix)
+```
+
+Một số nhận xét có thể rút ra như sau:
+
+- Chất lượng rượu tương quan mạnh với nồng độ cồn (alcohol) và mật độ (density). Tuy nhiên, cồn và mật độ lại có mối tương quan âm cao với nhau, vì vậy chỉ cần giữ lại một trong hai biến này để dự đoán chất lượng rượu. Theo góc nhìn hóa học, việc giữ lại lượng cồn là lựa chọn hợp lý hơn để dự đoán chất lượng rượu. 
+- Chất lượng rượu có mối tương quan âm với volatile acidity, do nồng độ cao của nó có thể dẫn đến hương vị giấm trong rượu. 
+- Free SO2 và total SO2 có mối tương quan dương mạnh với nhau và có tương quan âm với volatile acidity, phản ánh việc SO2 được thêm vào rượu để ngăn chặn sự hình thành axit axetic. 
+- pH tương quan âm với fixed acidity, citric acid, total SO2 và residual sugar (vì đường làm giảm độ axit).
+- pH tương quan dương với volatile acidity (điều này rất lạ vì thông thường pH càng cao thì độ axit phải càng giảm).
+- Residual sugar và density có mối tương quan dương, điều này có thể giải thích bởi việc thêm đường vào rượu làm tăng mật độ của nó. 
+- Sulphates được thêm vào rượu để sản xuất SO2, nhưng tổng lượng SO2 và sulphates lại có mối tương quan âm, có thể là do quá trình chuyển đổi giữa hai hợp chất này.
+- Nhìn chung, đa số các feature trong tập dữ liệu không có tương quan mạnh với chất lượng rượu. Tuy nhiên, có một số biến có thể xem là có ảnh hưởng đáng kể (corr > 0.3) lên quality so với các biến còn lại, có thể kể đến như: mật độ (density), hàm lượng cồn (alcohol), nồng độ clorua (chlorides) và độ axit dễ bay hơi (volatile_acidity). Trong số các feature này, hàm lượng và mật độ cồn cho thấy mối tương quan mạnh nhất với chất lượng rượu, điều này khá ngạc nhiên vì các thành phần hóa học thường mới là các yếu tố được xem xét kỹ lưỡng trong quá trình sản xuất rượu vang.
+
+Ngoài ra, ta cũng có thể nhận thấy sự khác biệt thú vị giữa màu rượu và hàm lượng sulfur dioxide cũng như giữa màu rượu và độ axit dễ bay hơi. Vì độ axit dễ bay hơi cũng ảnh hưởng đến chất lượng rượu vang, nên ta phải kiểm tra xem màu sắc ảnh hưởng đến mối quan hệ đó như thế nào và liệu chất lượng rượu có bị ảnh hưởng bởi các thông số tương tự nhau ở cả hai loại rượu vang đỏ và vang trắng hay không.
+
+#### f. Phân tích sâu hơn về mối tương quan giữa các biến với quality
+
+Tạo một feature mới rời rạc hoá quality, nhận vào ba giá trị tương ứng với 3 phân khúc, được chia
+dựa vào điểm đánh giá chất lượng (quality) như sau:
+  - poor (phân khúc tầm thấp): có điểm đánh giá từ 3 - 5.
+  - medium (phân khúc tầm trung): có điểm đánh giá bằng 6.
+  - excellent (phân khúc cao cấp): có điểm đánh giá từ 7 trở lên.
+
+```{r}
+# Tạo các nhóm mới
+data$segmentation <- ifelse(data$quality > 6,'excellent','poor')
+data$segmentation[data$quality==6] <- 'medium'
+data$segmentation <- as.factor(data$segmentation)
+
+# Kiểm tra kết quả
+table(data$segmentation)
+```
+
+```{r}
+ggplot(data, aes(x = segmentation, fill = segmentation)) + geom_bar() 
+```
+
+Phần lớn rượu có chất lượng trung bình (normal)
+Ta tiến hành so sánh các đặc trưng của từng phân khúc chất lượng rượu:
+
+```{r}
+plot_feature_in_quality_cat <- function(data, feature) {
+
+  # Create the boxplot
+  boxplot <- ggplot(data, aes(x = segmentation, y = .data[[feature]], fill = segmentation)) +
+    geom_boxplot()
+  # Create the density plot
+  density_plot <- ggplot(data, aes(x = .data[[feature]], fill = segmentation)) +
+    geom_density(aes(color = segmentation), bw = "nrd0", kernel = "gaussian", alpha = 0.3) 
+  
+  # Arrange the plots side by side
+  grid.arrange(boxplot, density_plot, ncol = 2)
+}
+```
+
+```{r}
+plot_feature_in_quality_cat(data, "alcohol")
+```
+
+Quan sát biểu đồ hộp cho thấy rượu vang có chất lượng cao hơn có xu hướng có hàm lượng cồn cao hơn so với rượu vang chất lượng thấp hơn. Điều này gợi ý rằng hàm lượng cồn (alcohol) có thể là một yếu tố quan trọng ảnh hưởng đến chất lượng rượu vang.
+
+```{r}
+plot_feature_in_quality_cat(data, "density")
+```
+
+Quan sát biểu đồ hộp cho thấy, rượu vang có chất lượng cao hơn có mật độ (density) thấp hơn so với rượu vang chất lượng thấp hơn. Điều này có nghĩa rằng rượu vang chất lượng cao có xu hướng có mật độ thấp hơn (điều này có thể liên quan đến tỷ lệ nước và cồn trong rượu).
+
+```{r}
+ggplot(data, aes(x = density, y = alcohol)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "blue") +  # Linear regression without confidence interval
+  labs(
+    title = "Scatter Plot of Density vs Alcohol",
+    x = "Density",
+    y = "Alcohol",
+  ) +
+  theme_bw()
+```
+
+Như đã nói, nồng độ cồn và mật độ có tương quân âm mạnh với nhau.
+
+```{r}
+plot_feature_in_quality_cat(data, "fixed_acidity")
+```
+
+Độ acid không bay hơi ở các loại rượu vang chất lượng khác nhau là tương tự nhau, có khá nhiều điểm mà có khả năng là outliers ở phân khúc rượu trung bình và cao.
+
+```{r}
+plot_feature_in_quality_cat(data, "volatile_acidity")
+```
+
+Rượu vang chất lượng cao có phạm vi IQR hẹp hơn, biểu thị sự đồng nhất cao hơn trong độ axit bay hơi so với rượu vang chất lượng thấp, nơi IQR rộng hơn (biểu hiện sự biến động lớn hơn).
+Đồng thời độ axit bay hơi tỷ lệ nghịch với chất lượng rượu. Ngoài ra, độ axit bay hơi cũng tồn tại các điểm có khả năng cao là outliers.
+
+```{r}
+plot_feature_in_quality_cat(data, "citric_acid")
+```
+
+Sự khác biệt nhỏ trong chiều dài của râu giữa các phân khúc chất lượng cho thấy rằng, mặc dù có sự biến động trong hàm lượng axit citric, sự phân bố tổng thể là tương đối nhất quán trong mỗi nhóm chất lượng rượu. hàm lượng axit citric cũng cho thấy các điểm có khả năng cao là outliers.
+
+```{r}
+plot_feature_in_quality_cat(data, "residual_sugar")
+```
+
+Biểu đồ mật độ cho thấy đỉnh phân bố của hàm lượng đường dư có xu hướng không thay đổi nhiều giữa các phân khúc chất lượng khác nhau. Điều này cho thấy rằng hàm lượng đường dư không phải là yếu tố phân biệt rõ ràng giữa các nhóm chất lượng của rượu vang. Hàm lượng đường dư cũng tồn tại các điểm có khả năng là outliers.
+
+```{r}
+plot_feature_in_quality_cat(data, "chlorides")
+```
+
+Sự đồng nhất cao hơn và xu hướng hàm lượng chlorides thấp hơn trong rượu vang chất lượng cao gợi ý rằng kiểm soát hàm lượng chlorides có thể là một yếu tố quan trọng trong sản xuất rượu vang chất lượng cao.
+Chlorides cũng tồn tại các điểm có khả năng là outliers.
+
+```{r}
+plot_feature_in_quality_cat(data, "free_sulfur_dioxide")
+```
+
+Hình dạng của biểu đồ mật độ biểu hiện rõ ràng sự khác biệt trong phân bố hàm lượng sulfur dioxide giữa các phân khúc chất lượng rượu. Rượu vang chất lượng cao có đỉnh phân bố rõ ràng và hẹp hơn, trong khi rượu vang chất lượng thấp và trung bình có đỉnh phân bố thấp hơn và rộng hơn, chỉ ra sự biến động lớn hơn trong hàm lượng sulfur dioxide. Hàm lượng sulfur dioxide cũng tồn tại các điểm có khả năng là outliers.
+
+```{r}
+plot_feature_in_quality_cat(data, "total_sulfur_dioxide")
+```
+
+Sự đồng nhất cao hơn và xu hướng hàm lượng tổng sulfur dioxide thấp hơn trong rượu vang chất lượng cao gợi ý rằng kiểm soát hàm lượng sulfur dioxide có thể là một yếu tố quan trọng trong sản xuất rượu vang chất lượng cao. Ngược lại, sự biến động lớn hơn trong rượu vang chất lượng thấp cho thấy cần có những cải tiến trong quy trình sản xuất để đạt được sự đồng nhất cao hơn.
+
+```{r}
+ggplot(data, aes(x = free_sulfur_dioxide, y = total_sulfur_dioxide)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "blue") +  # Linear regression without confidence interval
+  labs(
+    title = "Scatter Plot of free vs total SO2",
+    x = "Free SO2",
+    y = "Total SO2",
+  ) +
+  theme_bw()
+```
+
+Dễ dàng thấy được Free SO2 và Total SO2 có mối tương quan tuyến tính mạnh với nhau.
+
+```{r}
+plot_feature_in_quality_cat(data, "p_h") 
+```
+
+```{r}
+plot_feature_in_quality_cat(data, "sulphates")
+```
+
+Độ pH và sulphates của các phân khúc chất lượng rượu khác nhau là tương tự nhau.
+
+#### g. Red Wine và White Wine
+
+```{r}
+ggplot(data, aes(x = color, fill = color)) +
+  geom_bar() +
+  facet_wrap(~ segmentation) +  # Facet by quality category
+  labs(
+    title = "Number of Red/White Wines in Dataset by Quality Segmentation",
+    x = "Wine Type",
+    y = "Count"
+  )
+```
+
+Vì đây là bộ data imbalanced giữa red và white nên nếu dùng số lượng để đánh giá sẽ không chính xác, ta sẽ tính tỷ lệ segmentation trên mỗi class red và white
+
+```{r}
+wine_summary <- data |>
+  count(color, segmentation) |>
+  group_by(color) |>
+  mutate(total = sum(n),
+         percentage = n / total*100) |>
+  ungroup()
+
+wine_summary
+```
+
+```{r}
+ggplot(wine_summary, aes(x = color, y = percentage, fill = color)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ segmentation) +
+  labs(
+    title = "Proportion of Quality Segmentation in Each Wine Type",
+    x = "Quality Segmentation",
+    y = "Proportion"
+  ) 
+```
+
+Có thể thấy sự phân phối của chất lượng ở cả hai loại rượu vang khá tương đồng nhau khi phân khúc medium và poor chiến đa số. Tuy nhiên, tỷ lệ rượu chất lượng cao và trung bình ở rượu vang trắng là nhiều hơn so với rượu vang đỏ, đồng thời tỷ lệ rượu chất lượng thấp ở rượu vang trắng cũng thấp hơn rượu vang đỏ.
+=> color có thể là một feature quan trọng (tuy nhiên điều này cũng có thể là do sự mất cân bằng về dữ liệu giữa hai loại rượu vang này).
+
+#### h. Wine Type và Wine Quality
+
+```{r}
+ggplot(data, aes(x = color, y = alcohol, fill = segmentation)) +
+  geom_boxplot() +
+  facet_wrap(~ segmentation) +
+  labs(
+    title = "Boxplot of Alcohol Content by Quality Segmentation and Wine Type",
+    x = "Wine Type",
+    y = "Alcohol Content (%)",
+    fill = "Wine Type"
+  )
+```
+
+Không có sự khác nhau đáng kể về nồng độ cồn giữa hai loại rượu vang trắng và vang đỏ ở các phân khúc khác nhau.
+
+```{r}
+plot_scatter_in_wine_type <- function(data, feature1, feature2) {
+  ggplot(data = data, aes_string(x = feature1, y = feature2, color = "color")) +
+    geom_point(alpha = 0.3) +
+    facet_wrap(~ segmentation) +
+    labs(
+      x = feature1,
+      y = feature2,
+      color = "Wine Type"
+    ) +
+    theme_bw()
+}
+```
+
+```{r}
+features
+```
+
+```{r}
+plot_scatter_in_wine_type(data,"alcohol","volatile_acidity")
+```
+
+Dựa vào alcohol và violatile acidity, ta không cho thấy có sự phân biệt rõ rệt nào giữa hai tập rượu vang đỏ và vang trắng.
+
+```{r}
+plot_scatter_in_wine_type(data, "citric_acid", "volatile_acidity")
+```
+
+Tương tự, volatile_acidity và citric_acid cũng không cho thấy rõ sự phân biệt nào giữa hai loại rượu.
+
+```{r}
+plot_scatter_in_wine_type(data,"volatile_acidity","sulphates")
+```
+
+```{r}
+plot_scatter_in_wine_type(data,"fixed_acidity","total_sulfur_dioxide")
+```
+
+Tuy nhiên, có thể thấy rõ sự phân biệt tách lớp này giữa red/white ở các cặp feature total SO2 - fixed_acidity và sulphates - violatile_acidity.
+
+#### i. Phân tích đa biến (Multivariate Analysis)
+
+**Color và Wine Quality**
+
+Trước hết, cần kiểm tra xem liệu tất cả các feature đã được xác định là có ảnh hưởng đáng kể đến chất lượng rượu vang, có độc lập với màu rượu hay không. Hay nói cách khác là kiểm tra xem các yếu tố ảnh hưởng đến chất lượng rượu vang có khác nhau ở hai loại rượu này hay không.
+
+*Density vs. Quality*
+
+```{r}
+ggplot(data = data, aes(y = density, x = as.factor(quality))) +
+   geom_boxplot(outlier.shape = 19) +
+   coord_cartesian(ylim=c(0.9875, 1.0035)) +
+   facet_wrap(~ color) +
+   xlab('Quality') +
+   ylab('Density') +
+   ggtitle('How Density Level Affects Wine Quality')
+```
+
+Đối với cả hai loại rượu, chất lượng có mối tương quan nghịch với mật độ. Tuy nhiên, mối tương quan này có vẻ mạnh hơn một chút đối với rượu vang trắng.
+
+*Alcohol vs. Quality*
+
+```{r}
+ggplot(data = data, aes(y = alcohol, x = as.factor(quality))) +
+   geom_boxplot(outlier.shape = 19) +
+   coord_cartesian(ylim=c(8, 16)) +
+   facet_wrap(~ color) +
+   xlab('Quality') +
+   ylab('Alcohol') +
+   ggtitle('How Alcohol Level Affects Wine Quality')
+```
+
+Với hàm lượng cồn, ta cũng nhận thấy hai xu hướng tương tự nhau giữa hai loại rượu.
+
+*Chlorides vs. Quality*
+
+```{r}
+ggplot(data = data, aes(y = chlorides, x = as.factor(quality))) +
+   geom_boxplot(outlier.shape = 19) +
+   coord_cartesian(ylim=c(0, 0.2)) +
+   facet_wrap(~ color) +
+   xlab('Quality') +
+   ylab('Chlorides') +
+   ggtitle('How Chlorides Affects Wine Quality')
+```
+
+Rượu vang trắng về tổng quan có nồng độ clorua thấp hơn rượu vang đỏ. Tuy nhiên, cả hai loại rượu đều cho thấy một xu hướng tương quan nghịch giữa nồng độ clorua và chất lượng rượu, nhưng nhìn chung tác động này rất yếu và có rất nhiều điểm ngoại lai ở phân khúc rượu trung bình.
+
+*Volatile Acidity vs. Quality*
+
+```{r}
+ggplot(data = data, aes(y = volatile_acidity, x = as.factor(quality))) +
+   geom_boxplot(outlier.shape = 19) +
+   coord_cartesian(ylim=c(0, 0.9)) +
+   facet_wrap(~ color) +
+   xlab('Quality') +
+   ylab('Volatile Acidity') +
+   ggtitle('How Volatile Acidity Affects Wine Quality')
+```
+
+Độ axit dễ bay hơi có ảnh hưởng mạnh mẽ đến chất lượng của rượu vang đỏ nhưng dường như không có mối tương quan đáng kể nào với chất lượng của rượu vang trắng.
+
+**Xét các yếu tố chính ảnh hưởng đến chất lượng rượu vang**
+
+Trong phần này, ta sẽ tóm tắt sâu hơn về ba thông số ảnh hưởng đến chất lượng rượu một cách trực quan nhất.
+
+*Alcohol và Volatile Acidity*
+
+```{r}
+ggplot(aes(x = alcohol, y = quality, color = volatile_acidity),
+       data = subset(data, data$volatile_acidity < quantile(data$volatile_acidity, 0.99))) +
+  geom_jitter(size = 1, alpha = 0.7) +
+  scale_colour_gradient(high = "#132B43", low = "#56B1F7") +
+  facet_wrap(~color) +
+  coord_cartesian(xlim = c(quantile(data$alcohol, 0.01), quantile(data$alcohol, 0.99))) +
+  labs(y = 'Quality')
+```
+
+Đồ thị trên cho thấy mối tương quan dương giữa hàm lượng cồn và chất lượng của rượu vang đỏ và trắng. Ngoài ra, còn có thể thấy rõ mối tương quan nghịch nhẹ giữa chất lượng rượu và nồng độ axit dễ bay hơi ở rượu vang đỏ. Nhưng mối tương quan này lại hơi khó xác định ở rượu vang trắng vì rượu vang trắng có xu hướng có hàm lượng axit axetic thấp hơn.
+
+*Alcohol và Chlorides*
+
+```{r}
+ggplot(aes(x = alcohol, y = quality, color = chlorides),
+       data = subset(data, data$chlorides < quantile(data$chlorides, 0.99))) +
+  geom_jitter(size = 1, alpha = 0.8) +
+  scale_colour_gradient(low = '#c9f42d', high = '#080118') +
+  facet_wrap(~color) +
+  coord_cartesian(xlim = c(quantile(data$alcohol, 0.01), quantile(data$alcohol, 0.99))) +
+  labs(x = 'Alcohol', y = 'Quality')
+```
+
+Hàm lượng cồn cao làm tăng chất lượng rượu trong khi nồng độ clorua làm giảm chất lượng rượu. Một lần nữa, rượu vang trắng chứa nồng độ thành phần clorua thấp hơn, và do đó, mối tương quan này chủ yếu thấy rõ ở rượu vang đỏ.
+
+**Nhận xét tổng quan phần EDA**
+
+Trước hết, ta có thể nhận thấy rằng mật độ (denstity), độ cồn (alcohol), hàm lượng clorua (chlorides) và độ axit dễ bay hơi (volatile_acidity) ảnh hưởng đáng kể đến chất lượng rượu vang một cách độc lập với màu sắc. Nhưng những tác động này nhìn chung mạnh hơn đối với rượu vang đỏ.
+
+Tiếp theo, ta xem xét sự kết hợp giữa các thành phần và ảnh hưởng của chúng đến chất lượng rượu vang. Các sự kết hợp khác nhau cho thấy rõ ràng sự khác biệt giữa thành phần rượu vang đỏ và trắng. Ví dụ, rượu vang đỏ chứa nồng độ clorua và sunfat cao, trong khi, rượu vang trắng có đặc điểm là hàm lượng axit dễ bay hơi thấp. Tuy nhiên, không có sự kết hợp nào giữa các thành phần này ảnh hưởng đến chất lượng rượu một cách đáng kể.
+
+
+# **II. Preprocessing**
+
+```{r}
+# Print total missing values
+print(paste("Total NA:", sum(is.na(data))))
+
+# Print total duplicates
+print(paste("Total Duplicates:", sum(duplicated(data))))
+```
+
+```{r}
+data <- data |> distinct()
+print(paste("Total Duplicates:", sum(duplicated(data))))
+```
+
+```{r}
+# Xử lý imbalanced bằng kết hợp over và under sampling
+data_balanced <- ovun.sample(color~., data = data,
+                                N=nrow(data), p=0.5, 
+                                seed=1, method="both")$data
+data_balanced <- data_balanced |> mutate(color = factor(color, levels = c("red","white")))
+table(data_balanced$color)
+```
+
+```{r}
+ggplot(data_balanced, aes(x = color, fill = color)) +
+  geom_bar() +
+  labs(
+    title = "Number of red/white wine in dataset",
+    x = "Wine type",
+    y = "Count"
+  ) +
+  theme_bw()
+```
+
+# **III. Kiểm Định**
+
+Xây dựng hàm vẽ biểu đồ Violin:
+
+```{r}
+plot_violin <- function(data, feature, label) {
+  p<- ggplot(data, aes_string(x = label, y = feature, fill = label)) +
+    geom_violin() +
+    geom_boxplot(width = 0.15) +
+    labs(
+      x = label,
+      y = feature
+    ) +
+    ggtitle(paste("Violin plot of", feature, "by", label)) +
+    theme_bw() +
+    theme(legend.position = "none")
+  return(p)
+}
+```
+
+Xây dựng hàm thực hiện Permutation Test:
+
+```{r}
+perm_test <- function(x, y, R = 1000, alter = "two.sided") {
+  n <- length(x)
+  a <- split(x, y)
+  res_perm <- numeric(R)
+  mean_A <- mean(a[[1]])
+  mean_B <- mean(a[[2]])
+  
+  for (i in 1:R) {
+    idx_a <- sample(x = 1:n, size = length(a[[1]]))
+    idx_b <- setdiff(x = 1:n, y = idx_a)
+    res_perm[i] <- mean(x[idx_a]) - mean(x[idx_b])
+  }
+  
+  if (alter == 'left') {
+    p_value <- mean(res_perm < (mean_A - mean_B))
+  } else if (alter == 'right') {
+    p_value <- mean(res_perm > (mean_A - mean_B))
+  } else if (alter == 'two.sided') {
+    p_value <- mean(abs(res_perm) > abs(mean_A - mean_B))
+  } else {
+    stop("Invalid alternative hypothesis. Choose 'left', 'right', or 'two.sided'.")
+  }
+  
+  return(list(mean_A = mean_A, mean_B = mean_B, p_value = p_value))
+}
+```
+
+Xây dựng hàm thực hiện Bootstrap Permutation Test:
+
+```{r}
+boot_perm_test <- function(x, y, R, alter) {
+  n <- length(x)
+  a <- split(x, y)
+  res_perm <- numeric(R)
+  mean_A <- mean(a[[1]])
+  mean_B <- mean(a[[2]])
+  set.seed(32)
+
+  for (i in 1:R){
+    # Lấy mẫu từ x có hoàn lại
+    idx_a <- sample(x = 1:n,replace = TRUE,size = length(a[1]))
+    idx_b <- sample(x = 1:n,replace = TRUE,size = length(a[[2]]))
+
+    res_perm[i] <- mean(x[idx_a]) - mean(x[idx_b])
+  }
+  if (alter == 'left') {
+    p_value <- mean(res_perm < (mean_A - mean_B))
+  } else if (alter == 'right') {
+    p_value <- mean(res_perm > (mean_A - mean_B))
+  } else if (alter == 'two.sided') {
+    p_value <- mean(abs(res_perm) > abs(mean_A - mean_B))
+  } else {
+    stop("Invalid alternative hypothesis. Choose 'left', 'right', or 'two.sided'.")
+  }
+  
+  return(list(mean_A = mean_A, mean_B = mean_B, p_value = p_value))
+} 
+```
+
+## III.1. Kiểm định trung bình
+
+```{r}
+plot_violin(data_balanced,"alcohol","color")
+```
+
+Thực hiện kiểm định trung bình cho alcohol ở 2 loại rượu để kiểm tra có sự khác biệt giữa nồng độ cồn ở rượu vang đỏ so với rượu vang trắng hay không.
+
+Đặt giả thuyết:
+
+  H0: u_alcohol_red = u_alcohol_white
+  
+  H1: u_alcohol_red != u_alcohol_white
+
+```{r}
+boot_perm_test(data_balanced$alcohol, data$color, R=1000, alter = "two.sided")
+```
+
+Với mức ý nghĩa alpha = 0.05, p-value = 0.922 > 0.05, không đủ cơ sở để bác bỏ
+giả thuyết H0, hay nói cách khác, nồng độ cồn vang đỏ lớn hơn vang trắng chỉ là sự
+trùng hợp ngẫu nhiên và không mang ý nghĩa thống kê.
+
+```{r}
+plot_violin(data_balanced, "chlorides", "color")
+```
+
+Thực hiện kiểm định trung bình cho chlorides ở 2 loại rượu để kiểm tra xem việc hàm lượng clorua ở rượu vang đỏ lớn hơn so với rượu vang trắng có ý nghĩa thống kê hay không.
+
+Đặt giả thuyết:
+
+  H0: u_chlorides_red = u_chlorides_white
+  
+  H1: u_chlorides_red > u_chlorides_white
+
+```{r}
+boot_perm_test(data_balanced$chlorides, data$color, R=1000, alter = "right")
+```
+
+Với mức ý nghĩa alpha = 0.05, p-value = 0.836 > 0.05, không đủ cơ sở để bác bỏ
+giả thuyết H0, hay nói cách khác, lượng chlorides trong vang đỏ lớn hơn vang trắng chỉ là
+kết quả của sự trùng hợp ngẫu nhiên và không mang ý nghĩa thống kê.
+
+## III.2. Kiểm định ANOVA
+
+```{r}
+plot_violin(data, "alcohol", "segmentation")
+```
+
+Kiểm định giả thuyết nồng độ cồn ở các phân khúc chât lượng rượu khác nhau thì khác nhau.
+
+Đặt giả thuyết:
+
+  H0: u_alcohol_poor = u_alcohol_medium = u_alcohol_excellent
+  
+  H1: u_alcohol_poor != u_alcohol_medium != u_alcohol_excellent
+
+```{r}
+library(lmPerm)
+set.seed(56)
+out_aov_1 <- aovp(formula = alcohol ~ segmentation, data = data, perm = "Prob")
+```
+
+```{r}
+summary(out_aov_1)
+```
+
+Với p-value rất rất nhỏ ~0, ta bác bỏ giả thiết H0, hay nói cách khác là có sự khác nhau về nồng độ cồn ở các phân khúc chất lượng rượu khác nhau.
+
+```{r}
+plot_violin(data, "volatile_acidity", "segmentation")
+```
+
+Kiểm định giả thuyết lượng axit dễ bay hơi ở các phân khúc chât lượng rượu khác nhau thì khác nhau.
+
+Đặt giả thuyết:
+
+  H0: u_volacid_poor = u_volacid_medium = u_volacid_excellent
+  
+  H1: u_volacid_poor != u_volacid_medium != u_volacid_excellent
+
+```{r}
+set.seed(56)
+out_aov_2 <- aovp(formula = volatile_acidity ~ segmentation, data = data, perm = "Prob")
+```
+
+```{r}
+summary(out_aov_2)
+```
+
+Với p-value rất rất nhỏ ~0, ta bác bỏ giả thiết H0, hay nói cách khác là có sự khác nhau về lượng aixt dễ bay hơi ở các phân khúc chất lượng rượu khác nhau.
+
+
+# **IV. Building Models**
+
+```{r}
+# add categorical varialbles to both sets
+data$color <- ifelse(data$color == 'red', 1, 2)
+
+# merge red wine and white wine datasets
+data$color = factor(data$color)
+```
+
+```{r}
+data <- subset(data, select = -segmentation)
+head(data)
+```
+
+## IV.1. Chuẩn bị dữ liệu
+
+### IV.1.1. Train Test split
+
+```{r}
+# get features and taget
+features = colnames(data) 
+features = subset(features, features != "quality")
+target = "quality"
+
+# function for train test split
+train_test_split = function(data, test_size) {
+  set.seed(48)
+  ind = sample(nrow(data), size = nrow(data) * test_size, replace = FALSE, prob = NULL)
+  train_set = data[-ind,]
+  test_set = data[ind,]
+  
+  return(list("train_set" = train_set, "test_set" = test_set))
+}
+
+# split datasets with test_size = 0.25
+traintest_data = train_test_split(data, test_size = 0.25)
+datatrain = traintest_data$train_set
+datatest = traintest_data$test_set
+```
+
+Plot the distribution of the quality variable for each dataset
+
+```{r}
+# Create the plots
+plot1 <- ggplot(datatrain, aes(x = quality)) + 
+  geom_histogram(bins = 10, color = "black") + 
+  labs(x = "Quality", y = "Frequency", title = "Distribution of Quality (wine_train)")
+
+plot2 <- ggplot(datatest, aes(x = quality)) + 
+  geom_histogram(bins = 10, color = "black") + 
+  labs(x = "Quality", y = "Frequency", title = "Distribution of Quality (wine_test)")
+
+# Arrange the plots in a grid
+grid.arrange(grobs = list(plot1, plot2), nrow = 1)
+```
+
+### IV.1.2. Scale data
+
+```{r}
+# write function scaling Testing data with respect to Training data
+scale_data = function(traindata, testdata){
+  train_scaled <- scale(traindata[,!(names(traindata) %in% c("color", "quality"))])
+  test_scaled <- scale(testdata[,!(names(testdata) %in% c("color", "quality"))], 
+                        center = attr(train_scaled, "scaled:center"), 
+                        scale = attr(train_scaled, "scaled:scale"))
+
+  # Add the quality column back to the scaled datasets
+  train_scaled <- as.data.frame(cbind(train_scaled, color = traindata$color, quality = traindata$quality))
+  test_scaled <- as.data.frame(cbind(test_scaled, color = testdata$color, quality = testdata$quality))
+  
+  return(list("train_scaled" = train_scaled, "test_scaled" = test_scaled))
+}
+
+# scale on data
+data_scaled = scale_data(datatrain, datatest)
+datatrain_scaled = data_scaled$train_scaled
+datatest_scaled = data_scaled$test_scaled
+```
+
+## IV.2. Regression Model
+
+### IV.2.1. Linear Regression
+
+#### IV.2.1.1. Lựa chọn mô hình
+
+```{r}
+#specify the cross-validation method
+train_control <- trainControl(method = "cv", number = 10, savePredictions = TRUE)
+#fit a regression model and use k-fold CV to evaluate performance
+md_lm_data <- train(quality ~., data = datatrain_scaled, method = "lm", trControl = train_control)
+summary(md_lm_data)
+```
+
+```{r}
+# Hàm kiểm định cho hệ số 
+create_results_dataframe = function(model, boot_model, conf_level = 0.95) {
+  # Tính ước lượng cho các hệ số từ mô hình hồi quy
+  est = coef(model)
+  
+  # Tính độ lệch chuẩn của ước lượng hệ số từ bootstrap
+  se = apply(boot_model$t, 2, sd)
+  
+  # Tính khoảng tin cậy 95% cho các hệ số từ bootstrap
+  ci_95 = sapply(1:ncol(boot_model$t), function(i) {
+    CI = boot.ci(boot_model, index = i, type = "perc", conf = conf_level)$percent[1, 4:5]
+    paste0("(", round(CI[1], 2), ", ", round(CI[2], 2), ")")
+  })
+  
+  # Tính p-value cho các hệ số từ bootstrap
+  p_values = sapply(1:ncol(boot_model$t), function(x) {
+    qt0 = mean(boot_model$t[, x] <= 0)
+    if (qt0 < 0.5) {
+      return(2*qt0)
+    } else {
+      return(2*(1 - qt0))
+    }
+  })
+  
+  # Tạo dataframe
+  df_results = data.frame(
+    Est = est,
+    SE = se,
+    CI_95 = ci_95,
+    p_value = p_values,
+    row.names = names(est)
+  )
+  
+  # Vẽ histogram của các kết quả ước lượng bootstrap của hệ số
+  nrow = 2
+  ncol <- ceiling(length(est) / nrow)
+  par(mfrow = c(nrow, ncol))
+  for (i in 1:length(est)) {
+    hist(boot_model$t[, i], main = names(est)[i], xlab = names(est)[i])
+  }
+  
+  return(df_results)
+}
+
+boot_func = function(data, ind, formula, ...){
+  data_new = data[ind,]
+  model = lm(formula = formula, data = data_new, ...)
+  return(model$coefficients)
+}
+```
+
+#### IV.2.1.2. Kiểm tra tính đa cộng tuyến (Multicollinarilty) 
+
+Trong `multicollinearity` (tính đa cộng tuyến), `collinearity` (tính cộng tuyến) tồn tại giữa ba hoặc nhiều biến ngay cả khi không có cặp biến nào là tương quan cao. Có nghĩa là có sự dư thừa giữa các biến dự đoán.
+
+Khi có tính đa cộng tuyến, kết quả của mô hình hồi quy trở nên không ổn định.
+
+Tính đa cộng tuyến có thể được đánh giá bằng cách tính một chỉ số gọi là hệ số phóng đại phương sai (variance inflation factor - `VIF`), nó đo lường mức độ phương sai của một hệ số hồi quy bị phóng đại do tính đa cộng tuyến trongg mô hình.
+
+```{r}
+linear_model1 = lm(quality ~., data = datatrain_scaled)
+boot_linear_model1 = boot(data = datatrain_scaled, statistic = boot_func, R = 1000, formula = quality ~.)
+
+results_df1 = create_results_dataframe(model = linear_model1, boot_model = boot_linear_model1)
+print(results_df1)
+```
+
+Hệ số VIF của một biến dự đoán là một thước đo mức độ dễ dàng mà nó được dự đoán từ hồi quy tuyến tính sử dụng các biến dự đoán khác.
+
+```{r}
+library(car)
+vif(linear_model1)
+```
+
+Có thể thấy sự tồn tại của tính đa cộng tuyến ở đây, ta loại bỏ `density` vì nó gây ra hiện tượng đa cộng tuyến (VIF = 25.2764)
+
+Fitting model mới
+
+```{r}
+linear_model2 = lm(quality ~ . - density , data = datatrain_scaled)
+boot_linear_model2 = boot(data = datatrain_scaled, statistic = boot_func, R = 1000, formula = quality ~. - density )
+
+results_df2 = create_results_dataframe(model = linear_model2, boot_model = boot_linear_model2)
+print(results_df2)
+```
+
+Tương tự, chúng ta xây dựng một model khác sau khi loại bỏ `fixed_acidity`
+
+```{r}
+linear_model3 = lm(quality ~ . -density -fixed_acidity, data = datatrain_scaled)
+boot_linear_model3 = boot(data = datatrain_scaled, statistic = boot_func, R = 1000, 
+                          formula = quality ~. -density -fixed_acidity)
+
+results_df3 = create_results_dataframe(model = linear_model3, boot_model = boot_linear_model3)
+print(results_df3)
+```
+
+Tương tự, chúng ta xây dựng một model khác sau khi loại bỏ `p_h`
+
+```{r}
+linear_model4 = lm(quality ~ . -density -fixed_acidity -p_h, data = datatrain_scaled)
+boot_linear_model4 = boot(data = datatrain_scaled, statistic = boot_func, R = 1000, 
+                          formula = quality ~. -density -fixed_acidity -p_h)
+
+results_df4 = create_results_dataframe(model = linear_model4, boot_model = boot_linear_model4)
+print(results_df4)
+```
+
+Tương tự, chúng ta xây dựng một model khác sau khi loại bỏ `citric_acid`
+
+```{r}
+linear_model5 = lm(quality ~ . -density -fixed_acidity -p_h -citric_acid, data = datatrain_scaled)
+boot_linear_model5 = boot(data = datatrain_scaled, statistic = boot_func, R = 1000, 
+                          formula = quality ~. -density -fixed_acidity -p_h -citric_acid)
+
+results_df5 = create_results_dataframe(model = linear_model5, boot_model = boot_linear_model5)
+print(results_df5)
+```
+
+#### IV.2.1.3. Tại sao lại chọn linear_model5?
+
+- `linear_model1`:
+`quality` = 4.4 + 0.1`fixed_acidity` -0.23`volatile_acidity` - 0.009`citric_acid` + 0.29`residual_sugar`  - 0.02`chlorides` + 0.06`free_sulfur_dioxide` - 0.08`total_sulfur_dioxide` - 0.29`density`  - 0.07`p_h` + 0.11`sulphates` + 0.27`alcohol` -0.33`color`
+
+- `linear_model5`:
+`quality` = 4.04  -0.24`volatile_acidity` + 0.1`residual_sugar` - 0.03`chlorides` + 0.08`free_sulfur_dioxide` - 0.1`total_sulfur_dioxide`  + 0.09`sulphates` + 0.29`alcoho`l -0.1`color`
+
+Sự khác biệt chính giữa hai mô hình là `linear_model1` bao gồm tất cả các biến, trong khi `linear_model5` loại bỏ `density`, `fixed_acidity`, `p_h` và `citric_acid.`
+
+Kết quả cho thấy rằng `linear_model5` giải thích khoảng 28.18% biến `quality`. Khi các biến bị loại bỏ được thêm lại vào `linear_model1`, khả năng giải thích tăng lên chỉ 0.58% lên 28.76%. Câu hỏi là liệu việc tăng này 0.58% có ý nghĩa thống kê hay không.
+
+Để trả lời câu hỏi này, thực hiện kiểm định giả thuyết cho từng biến bị loại bỏ và kết quả như sau:
+
+  +) `density`: p = 0.66
+  
+  +) `fixed_acidity`: p = 0.71
+  
+  +) `p_h`: p = 0.45
+  
+  +) `citric_acid.`: p = 0.27
+  
+Vì tất cả p-value này đều lớn hơn mức ý nghĩa 0.05, ta kết luận rằng các biến bị loại bỏ không cung cấp thông tin bổ sung hay cải thiện dự đoán về chất lượng hơn những gì đã được giải thích bởi các biến trong `linear_model5.` Điều này ngụ ý rằng những biến này không có ảnh hưởng đáng kể đối với chất lượng rượu vang đỏ và việc bao gồm chúng vào mô hình không cải thiện khả năng dự đoán.
+
+Tóm lại, sau khi tính toán ảnh hưởng của bảy biến này, các biến bổ sung không có tác động thống kê đáng kể đến dự đoán về chất lượng.
+
+#### IV.2.1.4 Thực hiện thống kê suy luận
+
+##### a. F-test
+
+- Thực hiện các thống kê suy luận cho mô hình linear_model5 vừa xác định được. 
+Ta áp dụng phương pháp bootstrap để ước lượng khoảng tin cậy và kiểm định giả thuyết βj = 0.  
+“Có thực sự tồn tại mối liên hệ giữa biến Xj và Y”.
+
+```{r}
+linear_model = lm(quality ~ . -density -fixed_acidity -p_h -citric_acid, data = datatrain_scaled)
+boot_linear_model = boot(data = datatrain_scaled, statistic = boot_func, R = 1000, 
+                          formula = quality ~. -density -fixed_acidity -p_h -citric_acid)
+
+summary(linear_model)
+```
+
+F-Statistic - p value <= 2.2e -16
+
+```{r}
+print(boot_linear_model)
+results_df = create_results_dataframe(model = linear_model, boot_model = boot_linear_model)
+print(results_df)
+```
+
+Chúng ta có thể thấy p value nhỏ hơn 0.05. Vì vậy, ta bác bỏ giả thuyết và chấp nhận đối thuyết, hay có thể nói rằng mô hình là có ý nghĩa.
+
+##### b. ANOVA
+
+```{r}
+par(mfrow=c(2,2), oma = c(1,1,0,0) + 0.1, mar = c(3,3,1,1) + 0.1)
+plot(linear_model)
+```
+
+- Biểu đồ Residuals vs Fitted cho thấy nếu phần dư có mô hình phi tuyến. Phần dư xung quanh một đường ngang mà không có mô hình rõ ràng, đây là dấu hiệu tốt cho thấy không có mối quan hệ phi tuyến.
+
+- Biểu đồ QQ chuẩn cho thấy phần dư fit với đường thẳng. Do đó, có thể gọi là phân phối chuẩn của phần dư.
+
+- Biểu đồ Scale-Location cho thấy nếu phần dư phân bố đều dọc theo các phạm vi của các biến dự đoán. Đây là cách để kiểm tra giả thuyết về đồng nhất phương sai (homoscedasticity). Nó thoả nếu bạn thấy một đường ngang đi qua các điểm phân bố đều (ngẫu nhiên).
+
+- Biểu đồ Residuals vs Leverage có dáng vẻ đặc trưng khi có một trường hợp có ảnh hưởng lớn.Bạn có thể thấy rõ khoảng cách Cook vì tất cả các trường hợp đều nằm trong khoảng cách Cook.
+
+##### c. Kiểm định khoảng tin cậy 95% cho trung bình
+
+Giả sử nồng độ phần trăm của các chất là:
+
+```{r}
+head(datatest_scaled, 1)
+```
+
+Khi đó, dựa vào mô hình, ta có thể ước tính được chất lượng rượu như sau:
+
+```{r}
+new_data = head(datatest_scaled, 1)
+pred_data = predict(linear_model, new_data)
+pred_data
+```
+
+Và để tìm khoảng tin cậy cho giá trị trung bình chất lượng rượu, ta sử dụng phương pháp bootstrap. Vì đã chạy bootstrap ở phần trước với 1000 lần lặp để ước tính các hệ số, ta có thể sử dụng kết quả này để tính các giá trị ước đoán trung bình chất lượng rượu trong mỗi lần lặp mẫu:
+
+```{r}
+x_wine <- as.numeric(cbind(1,new_data[1,]))
+
+y_wine <- apply(boot_linear_model$t, 1, function(x){x_wine %*% t(x) })
+quantile(y_wine, probs = c(0.025, 0.975))
+```
+
+Như vậy, trung bình chất lượng rượu được tiên lượng theo mô hình này, có giá trị thay đổi từ (-2.180365, 7.492234), với độ tin cậy 95%.
+
+##### d. Ước lượng khoảng tiên đoán 95% độ tin cậy
+
+Ngoài ra, ta còn có thể sử dụng phương pháp bootstrap để ước lượng khoảng tiên đoán cho chất lượng rượu, theo nồng độ các chất tan có trong rượu, dựa trên mô hình:
+
+```{r}
+resid_data = residuals(linear_model)
+y_wine_pd_pci = y_wine + sample(resid_data, size = 1000, replace = TRUE)
+quantile(y_wine_pd_pci, probs = c(0.025, 0.975))
+```
+
+Như vậy, khoảng tiên đoán cho chất lượng rượu được tiên lượng theo mô hình này, có giá trị thay đổi từ (-2.742206, 7.918966), với độ tin cậy 95%.
+
+#### IV.2.1.5. Đánh giá mô hình
+
+Tập dữ liệu test ban đầu:
+
+```{r}
+head(datatest_scaled$quality)
+```
+
+Giá trị chất lượng dự đoán:
+
+```{r}
+pred <- predict(linear_model, datatest_scaled)  
+head(pred)
+```
+
+Làm tròn các giá trị dự đoán này, ta được:
+
+```{r}
+pred = round(pred)
+head(pred)
+```
+
+Từ đó, ta có thể xây dựng một confusion matrix đơn giản như sau:
+
+```{r}
+tst_tab <- table(predicted = pred, actual = datatest_scaled$quality)
+tst_tab
+```
+
+```{r}
+RMSE_value <- RMSE(pred, datatest_scaled$quality)
+MAE_value <- MAE(pred, datatest_scaled$quality)
+R_squared <- R2(pred, datatest_scaled$quality)
+accuracy <- sum(diag(tst_tab))/length(datatest_scaled$quality)
+# Hiển thị kết quả
+cat("RMSE:", RMSE_value, "\n")
+cat("MAE:", MAE_value, "\n")
+cat("R-squared:", R_squared, "\n")
+cat("Accuracy: ", accuracy,"\n")
+```
+#### IV.2.1.6. Nhận xét và rút ra kết luận cho mô hình
+
+```{r}
+linear_model5
+```
+
+Cụ thể, thông tin từ tổng hợp bootstrap cho thấy các hệ số cho,`residual_sugar` `free_sulfur_dioxide`, `sulphates` và `alcohol` đều dương trên tất cả các mẫu bootstrap, cho thấy các giá trị cao hơn của các biến này liên quan đến chất lượng rượu vang tốt hơn. Ngược lại, các hệ số cho `total_sulfur_dioxide`, `chlorides`, `volatile_acidity` và `color` lại âm, cho thấy các giá trị cao hơn của các biến này liên quan đến chất lượng rượu vang kém hơn.
+If the winemaker wants to increase the quality of the data wine, it would be beneficial to:
+Nếu nhà sản xuất rượu muốn tăng chất lượng của rượu vang, họ có thể làm bằng cách: 
+
+- Tăng nồng độ `residual_sugar`: Đường dư có thể góp phần vào vị ngọt và cấu trúc của rượu, có thể cải thiện hương vị và chất lượng tổng thể của sản phẩm.
+- Tăng nồng độ `free_sulfur_dioxide`: Lưu huỳnh dioxit tự do là chất chống oxy hóa giúp ngăn ngừa sự oxy hóa và hư hỏng trong rượu. Tăng nồng độ này có thể giúp cải thiện sự tươi mới và chất lượng tổng thể của rượu.
+- Tăng nồng độ `sulphates`: Sunfua là loại chất bảo quản giúp ngăn ngừa sự hư hỏng và oxy hóa trong rượu. Tăng nồng độ sunfua có thể giúp cải thiện sự ổn định và chất lượng của rượu.
+- Tăng nồng độ `alcohol`: Cồn là yếu tố quan trọng ảnh hưởng đến chất lượng rượu vang, ảnh hưởng đến cấu trúc, hương vị và khả năng lão hóa của rượu. Rượu vang với mức cồn lý tưởng (thường từ 12% đến 15% ABV) thường cân bằng và hài hòa hơn, trong khi rượu vang với mức cồn quá thấp hoặc quá cao có thể thiếu cân bằng và thiếu tính cá nhân. Tăng nồng độ cồn có thể giúp cải thiện hương vị và chất lượng tổng thể của rượu vang.
+
+Hoặc:
+
+- Giảm nồng độ `total_sulfur_dioxide`: Mặc dù SO2 là chất bảo quản quan trọng trong rượu, mức độ cao có thể ảnh hưởng tiêu cực đến hương vị và mùi của rượu. Giảm nồng độ SO2 tổng có thể giúp cải thiện tính cách và chất lượng tổng thể của sản phẩm.
+
+- Giảm nồng độ `color`: Mặc dù màu sắc là một yếu tố quan trọng trong rượu, màu sắc quá mạnh có thể liên quan đến chất lượng thấp hơn của rượu. Giảm độ mạnh màu sắc có thể cải thiện chất lượng tổng thể của sản phẩm.
+
+- Giảm nồng độ `chlorides`: Clo là một loại muối góp phần vào vị đắng và cảm giác khô. Giảm nồng độ clo có thể cải thiện hương vị và chất lượng tổng thể của rượu.
+
+- Giảm nồng độ `volatile_acidity`: Độ axit bay hơi đề cập đến nồng độ axit như axit axetic, góp phần vào hương vị và mùi của rượu. Mặc dù một số axit bay hơi là cần thiết, mức độ cao có thể gây ra hương vị và mùi không mong muốn, ảnh hưởng tiêu cực đến chất lượng sản phẩm. Giảm nồng độ axit bay hơi có thể cải thiện hương vị và chất lượng tổng thể của rượu.
+
+
+Bằng cách điều chỉnh các biến này, nhà sản xuất rượu có thể cải thiện chất lượng tổng thể của rượu vang đỏ. Tuy nhiên, cần lưu ý rằng quá trình sản xuất rượu vang là phức tạp, và thay đổi các biến này có thể có tác động không mong muốn đến hương vị, mùi và tính chất tổng thể của sản phẩm. Ngoài ra, cũng có những yếu tố khác ảnh hưởng đến chất lượng của rượu vang như loại nho, khí hậu và kỹ thuật chế biến rượu.
+
+### IV.2.2. Stepwise Regression
+
+#### IV.2.2.1 Lựa chọn mô hình
+
+##### a. Forward Stepwise Selection
+
+```{r}
+#define intercept-only model
+intercept_only <- lm(quality ~ 1, data=datatrain_scaled)
+
+#define model with all predictors
+all <- lm(quality ~ ., data=datatrain_scaled)
+
+#perform forward stepwise regression
+forward <- step(intercept_only, direction='forward', scope=formula(all), trace=0, k=20)
+
+#view results of forward stepwise regression
+forward$anova
+```
+
+Các hệ số (coefficients):
+
+```{r}
+forward$coefficients
+```
+
+##### b. Backward Stepwise Selection
+
+```{r}
+#perform backward stepwise regression
+backward <- step(all, direction='backward', scope=formula(all), trace=0, k=20)
+
+#view results of backward stepwise regression
+backward$anova
+```
+
+Các hệ số (coefficients):
+
+```{r}
+backward$coefficients
+```
+
+##### c. Both-Direction Stepwise Selection
+
+```{r}
+#perform backward stepwise regression
+both <- step(intercept_only, direction='both', scope=formula(all), trace=0, k=20)
+
+#view results of backward stepwise regression
+both$anova
+```
+
+Các hệ số (coefficients):
+
+```{r}
+both$coefficients
+```
+
+#### IV.2.2.2 Thực hiện thống kê suy luận
+
+```{r}
+summary(both)
+```
+
+```{r}
+both_model = lm(formula = quality ~ alcohol + volatile_acidity + sulphates + residual_sugar +
+                  color, data = datatrain_scaled)
+
+boot_stepwise_model = boot(data = datatrain_scaled, statistic = boot_func, R = 1000, 
+                           formula = quality ~ alcohol + volatile_acidity + sulphates
+                           + residual_sugar + color)
+
+results_df_stepwise = create_results_dataframe(model = both_model, boot_model = boot_stepwise_model)
+results_df_stepwise
+```
+
+- Mô hình Stepwise Regression có dạng:
+`quality` = 6.14 + 0.43alcohol - 0.26volatile_acidity + 0.08sulphates + 0.09residual_sugar - 0.19color
+
+Kết quả cho thấy hồi quy từng bước giải thích được khoảng 28,10% sự thay đổi về chất lượng và khi các biến bị loại trừ được thêm lại vào thì khả năng giải thích chỉ tăng từ 0,66% lên 28,76%. Câu hỏi đặt ra là liệu mức tăng 0,66% này có ý nghĩa thống kê hay không.
+
+Để trả lời câu hỏi này, ta thực hiện kiểm tra giả thuyết cho từng biến bị loại trừ và thu được các p_value sau:
+  + fixed_acidity: p = 0.71
+  + free_sulfur_dioxide: p = 0.09
+  + citric_acid: p = 0.49
+  + chlorides: p = 0.12
+  + p_h: p = 0.45
+  + ...
+  
+Vì tất cả các giá trị p này đều lớn hơn mức ý nghĩa alpha là 0,05, nên ta kết luận rằng các biến bị loại trừ không cung cấp thông tin bổ sung hoặc cải thiện dự đoán về chất lượng ngoài những gì đã được giải thích bởi các biến trong mô hình tuyến tính linear_model1, cụ thể là volatile_acidity, citric_acid, chlorides, total_sulfur_dioxide, p_h, sulphates, and alcohol.
+
+#### IV.2.2.3. Nhận xét
+
+Dựa trên 3 mô hình hồi quy từng bước, ta xác định được các biến quan trọng nhất ảnh hưởng đến chất lượng rượu vang, đó là::  `alcohol`, `residual_sugar`, `sulphates`, `color`,  `volatile_acidity`.
+
+Cụ thể hơn, ta nhận thấy rằng:
+
+- `alcohol`, `residual_sugar` và `sulphates` có tác động tích cực đến chất lượng rượu, nghĩa là tăng nồng độ của chúng có thể cải thiện chất lượng rượu.
+- `color` và `volatile_acidity` có tác động tiêu cực đến chất lượng rượu, nghĩa là tăng nồng độ của chúng có thể giảm chất lượng rượu.
+
+Điều này cho thấy rằng các nhà sản xuất rượu nên tập trung vào:
+
+- Tối ưu hóa mức độ của:
+  + `sulphates`: để cải thiện độ ổn định và chất lượng tổng thể của rượu
+  + `alcohol`: để nâng cao hương vị và chất lượng tổng thể của rượu
+  + `residual_sugar`: để đóng góp vào độ ngọt và thể tích của rượu, từ đó nâng cao hương vị và chất lượng tổng thể của rượu
+- Giảm thiểu mức độ của:
+  + `color`: để tránh tác động tiêu cực đến chất lượng rượu
+  + `volatile_acidity`: để ngăn chặn hương vị khó chịu, giống như giấm
+
+Bằng cách hiểu mối quan hệ giữa các biến này và chất lượng rượu, các nhà sản xuất rượu có thể đưa ra quyết định sáng suốt về cách tối ưu hóa quá trình sản xuất rượu để sản xuất rượu chất lượng cao.
+
+Đáng chú ý là những phát hiện này cũng có thể được sử dụng để xác định các khu vực cần cải thiện trong quá trình sản xuất rượu, chẳng hạn như điều chỉnh quá trình lên men để tối ưu hóa hàm lượng của alcohol, residual_sugar và sulphates, và thực hiện các kỹ thuật để giảm thiểu mức độ ảnh hưởng của color và volatile_acidity. Bằng cách làm vậy, các nhà sản xuất rượu có thể tinh chỉnh kỹ thành phần rượu của mình và sản xuất rượu vang chất lượng cao đáp ứng các tiêu chuẩn mong đợi.
+
+### IV.2.3. Hồi quy đa thức
+
+#### IV.2.3.1. Xây dựng mô hình
+
+Xét mô hình hồi quy tối ưu, được lựa chọn trước đó, linear_model5 có dạng như sau:
+
+  quality = β0 + β1alcohol + β2sulphates + β3volatile_acidity + β4chlorides +
+            β5total_sulfur_dioxide + β6citric_acid + β7p_h + ε
+
+```{r}
+linear_model5  <- lm(quality ~ alcohol + sulphates + volatile_acidity + chlorides
+                     + total_sulfur_dioxide + citric_acid + p_h, data = datatrain_scaled)
+summary(linear_model5)
+```
+
+##### a. Kiểm tra tính tuyến tính của mô hình với biểu đồ Residuals vs Fitted.
+
+```{r}
+ggplot(data = linear_model5, mapping = aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(x = "Fitted values", y = "Residuals") +
+  theme_bw()
+```
+
+Hình vẽ không cho thấy xu hướng đường cong nào đáng kể.
+  => Giả định về tính tuyến tính của mô hình là phù hợp.
+  
+##### b. Kiểm tra tính tuyến tính từng phần của các biến có trong mô hình bằng biểu đồ thặng dư từng phần. 
+  
+```{r}
+# Hàm vẽ biểu đồ thặng dư từng phần
+plotPartialResidual <- function(dataset, model, feature) {
+  
+  # kết quả cho từng thành phần tuyến tính
+  terms_md <- predict(model, type = "terms")
+  head(terms_md)
+  
+  # các giá trị thặng dư từng phần
+  partial_resid_md <- residuals(model, type = "partial")
+  head(partial_resid_md)
+  data_part_resid_md <- tibble(
+    features = dataset[[feature]],
+    terms = terms_md[, feature],
+    partial_resid = partial_resid_md[, feature]
+  )
+  
+  ggplot(data_part_resid_md, mapping = aes(features, partial_resid)) +
+    geom_point(colour='cyan4', alpha = 0.4) +
+    geom_smooth(method = "loess", se = FALSE, linetype = "dashed", color = "red") +
+    geom_line(aes(x = features, y = terms), color = "blue") +
+    labs(x = sprintf("%s", feature), y = "Partial Residuals") +
+    theme_bw()
+}
+```
+
+```{r}
+# Create a list of plots
+plots <- list()
+
+# Create a list of data frames
+feature_list <- list('sulphates', 'alcohol', 'total_sulfur_dioxide', 'citric_acid', 'chlorides', 'volatile_acidity', 'p_h')
+
+# Create a list of plot titles
+titles <- c('Sulphates', 'Alcohol', 'Total Sulfur Dioxide', 'Citric Acid', 'Chlorides', 'Volatile Acidity', 'pH')
+
+# Create individual plots and add to the list
+for(i in seq_along(feature_list)) {
+  plots[[i]] <- plotPartialResidual(datatrain_scaled, linear_model5, feature_list[[i]])
+}
+
+# Arrange the plots in a grid
+grid.arrange(grobs = plots, nrow = 3)
+```
+
+Thông qua biểu đồ thặng du từng phần, nhận thấy có một số feature mà mối quan hệ giữa nó
+và biến mục tiêu quality không hẳn là tuyến tính. Do đó, để cải thiện mô hình, ta có thể
+sử dụng mô hình hồi quy mở rộng như sau:
+
+```{r}
+poly_model <- lm(quality ~ alcohol + poly(sulphates,2) + volatile_acidity +
+                   poly(chlorides,2) + poly(total_sulfur_dioxide,2) + citric_acid +
+                   p_h, data = datatrain_scaled)
+
+summary(poly_model)
+```
+
+```{r}
+residualPlots(poly_model, pch=19, col="cyan4", cex=0.6)
+```
+
+```{r}
+par(mfrow=c(2,2), oma = c(1,1,0,0) + 0.1, mar = c(3,3,1,1) + 0.1)
+plot(poly_model)
+```
+
+
+#### IV.2.3.2. Đánh giá mô hình
+
+```{r}
+preds_poly <- predict(poly_model, datatest_scaled)
+
+# round the numeric values to the nearest integer values
+preds_poly = round(preds_poly)
+head(preds_poly)
+```
+
+```{r}
+tst_tab <- table(predicted = preds_poly, actual = datatest_scaled$quality)
+tst_tab
+```
+
+```{r}
+RMSE_value <- RMSE(preds_poly, datatest_scaled$quality)
+MAE_value <- MAE(preds_poly, datatest_scaled$quality)
+R_squared <- R2(preds_poly, datatest_scaled$quality)
+accuracy <- sum(diag(tst_tab))/length(datatest_scaled$quality)
+
+# Hiển thị kết quả
+cat("RMSE:", RMSE_value, "\n")
+cat("MAE:", MAE_value, "\n")
+cat("R-squared:", R_squared, "\n")
+cat("Accuracy: ", accuracy,"\n")
+```
+
+### IV.2.4. Ridge Regression
+
+#### IV.2.4.1. Xây dựng mô hình
+
+```{r}
+X_train <- as.matrix(datatrain_scaled[, -which(names(datatrain_scaled)
+                                               %in% c("quality"))])
+y_train <- datatrain$quality
+
+X_test <- as.matrix(datatest_scaled[, -which(names(datatest_scaled) == "quality")])
+```
+
+```{r}
+### block này lỗi --> check lại
+ridge_model <- glmnet(X_train, y_train, alpha = 0)
+
+# Chọn hyperparameter lambda tối ưu bằng cross-validation
+cv_ridge_model <- cv.glmnet(X_train, y_train, alpha = 0)
+best_lambda <- cv_ridge_model$lambda.min
+
+# Huấn luyện mô hình với lambda tối ưu
+ridge_model <- glmnet(X_train, y_train, alpha = 0, lambda = best_lambda)
+
+# Dự đoán trên tập kiểm tra
+preds_ridge <- predict(ridge_model, newx = X_test, s = best_lambda)
+range(preds_ridge)
+```
+
+Giá trị hồi quy dao động trong khoảng từ 4 đến 8.
+
+#### IV.2.4.2. Đánh giá mô hình
+
+```{r}
+# round the numeric values to the nearest integer values
+preds_ridge = round(preds_ridge)
+head(preds_ridge)
+```
+
+```{r}
+tst_tab <- table(predicted = preds_ridge, actual = datatest_scaled$quality)
+tst_tab
+```
+
+```{r}
+RMSE_value <- RMSE(preds_ridge, datatest_scaled$quality)
+MAE_value <- MAE(preds_ridge, datatest_scaled$quality)
+R_squared <- R2(preds_ridge, datatest_scaled$quality)
+accuracy <- sum(diag(tst_tab))/length(datatest_scaled$quality)
+
+# Hiển thị kết quả
+cat("RMSE:", RMSE_value, "\n")
+cat("MAE:", MAE_value, "\n")
+cat("R-squared:", R_squared, "\n")
+cat("Accuracy: ", accuracy,"\n")
+```
+
+## IV.3. Classification models
+
+### IV.3.1. Naive Bayes
+
+#### IV.3.1.1. Chuẩn bị dữ liệu
+
+Tạo một feature mới tên là 'segmentation' nhận ba giá trị tương ứng với 3 phân khúc, được chia
+dựa vào điểm đánh giá chất lượng (quality):
+  - poor (phân khúc tầm thấp): có điểm đánh giá từ 3 - 5.
+  - medium (phân khúc tầm trung): có điểm đánh giá bằng 6.
+  - excellent (phân khúc cao cấp): có điểm đánh giá từ 7 trở lên.
+
+```{r}
+# scale on data
+data_scaled = scale_data(datatrain, datatest)
+datatrain_scaled = data_scaled$train_scaled
+datatest_scaled = data_scaled$test_scaled
+```
+
+```{r}
+#wine quality is turned into nominal data
+datatrain_scaled$segmentation <- ifelse(datatrain_scaled$quality < 6,'poor','excellent')
+datatrain_scaled$segmentation[datatrain_scaled$quality==6] <- 'medium'
+datatrain_scaled$segmentation <- as.factor(datatrain_scaled$segmentation)
+
+datatest_scaled$segmentation <- ifelse(datatest_scaled$quality < 6,'poor','excellent')
+datatest_scaled$segmentation[datatest_scaled$quality==6] <- 'medium'
+datatest_scaled$segmentation <- as.factor(datatest_scaled$segmentation)
+```
+
+```{r}
+data$segmentation <- ifelse(data$quality < 6,'poor','excellent')
+data$segmentation[data$quality==6] <- 'medium'
+data$segmentation <- as.factor(data$segmentation)
+
+ggplot(data=data) +
+  geom_bar(mapping = aes(x=quality, fill = factor(quality)), stat = "count") +
+  scale_fill_manual(values = c("3" = "orange2", "4" = "orange2", "5" = "orange2", "6" = "pink1", "7" = "cyan4", "8" = "cyan4")) +
+  labs(x = "Quality", y = "Count") +
+  theme_minimal()
+```
+
+```{r}
+datatrain_scaled <- subset(datatrain_scaled, select = -c(quality))
+datatest_scaled <- subset(datatest_scaled, select = -c(quality))
+```
+
+#### IV.3.1.2. Kiểm tra tính phân phối chuẩn của từng biến giải thích trong từng nhóm phân khúc chất lượng.
+
+```{r}
+#split dataframe into groups
+seg <- split(datatrain_scaled, f = datatrain_scaled$segmentation)
+
+poor = seg$poor
+medium = seg$medium
+excellent = seg$excellent
+```
+
+##### a. Nhóm phân khúc thấp (poor):
+
+```{r}
+poor <- subset(poor, select = -segmentation)
+hist.data.frame(poor)
+```
+
+##### b. Nhóm phân khúc tầm trung (medium):
+
+```{r}
+medium <- subset(medium, select = -segmentation)
+hist.data.frame(medium)
+```
+
+##### c. Nhóm phân khúc cao cấp (excellent):
+
+```{r}
+excellent <- subset(excellent, select = -segmentation)
+hist.data.frame(excellent)
+```
+
+#### IV.3.1.3. Huấn luyện và đánh giá mô hình.
+
+Naive Bayes sử dụng ước lượng mật độ của phân phối chuẩn được xây dựng sử dụng các biến có phân phối chuẩn và sự độc lập giữa các biến như sau:
+
+```{r}
+nb_model <- NaiveBayes(formula = segmentation ~ density + volatile_acidity +
+                         p_h + fixed_acidity + sulphates,
+                         data = datatrain_scaled)
+
+preds_nb <- predict(nb_model, newdata = datatest_scaled)
+```
+```{r}
+nb_conf_matrix <- confusionMatrix(preds_nb$class, datatest_scaled$segmentation)
+print(nb_conf_matrix)
+```
+
+Naive Bayes sử dụng ước lượng mật độ Kernel:
+
+```{r}
+nb_model_k <- NaiveBayes(formula = segmentation ~ .,
+                         data = datatrain_scaled[ , !(names(datatrain_scaled) %in% c('quality'))],
+                         usekernel = TRUE)
+
+preds_nb_k <- predict(nb_model_k, newdata = datatest_scaled)
+```
+
+```{r}
+#Evaluate the model's performance
+nb_conf_matrix_k <- confusionMatrix(preds_nb_k$class, datatest_scaled$segmentation)
+print(nb_conf_matrix_k)
+```
+
+### IV.3.2. LDA
+
+```{r}
+lda_model <- lda(segmentation ~ ., data = datatrain_scaled[ , !(names(datatrain_scaled)
+                                                                %in% c('quality'))])
+preds_lda <- predict(lda_model, newdata = datatest_scaled[ , !(names(datatrain_scaled)
+                                                               %in% c('quality'))])
+summary(preds_lda$class)
+```
+
+```{r}
+lda_conf_matrix <- confusionMatrix(preds_lda$class, datatest_scaled$segmentation)
+print(lda_conf_matrix)
+```
+
+### IV.3.3. Multinominal Logistic`
+
+#### IV.3.3.1 Lựa chọn mô hình
+
+```{r}
+head(datatrain_scaled)
+```
+
+```{r}
+md_mlogit1 = nnet::multinom(segmentation~., data = datatrain_scaled, maxit = 500)
+```
+
+Thuật toán hội tụ sau 30 lần lặp. Tổng hợp kết quả ước lượng mô hình như sau:
+
+```{r}
+md_mlogit1
+```
+
+Calculate coefficient and standard error
+
+```{r}
+summary(md_mlogit1)
+```
+
+Giải thích dữ liệu huấn luyện mô hình:
+
+Sau khi chạy mô hình, nnet báo cáo tóm tắt các vòng lặp và thông báo về sự hội tụ của mô hình. Trong trường hợp này, mô hình hội tụ khá nhanh sau 30 vòng lặp. Đầu ra thực thi mô hình hiển thị một số lịch sử vòng lặp và bao gồm log-likelihood âm cuối cùng là 4194. Giá trị này được nhân đôi như được hiển thị trong tóm tắt mô hình dưới dạng Residual Deviance.
+
+Akaike Information Criterion (AIC) là 8441.024 và nó cung cấp một phương pháp để đánh giá chất lượng của mô hình của bạn thông qua việc so sánh các mô hình liên quan. Nếu chúng ta có nhiều hơn một mô hình ứng viên tương tự (nơi tất cả các biến của mô hình đơn giản hơn xuất hiện trong các mô hình phức tạp hơn), thì chúng ta nên chọn mô hình có AIC nhỏ nhất. Nó hữu ích để so sánh các mô hình. Tuy nhiên, không giống như R-squared, con số đó không có ý nghĩa.
+
+#### IV.3.3.2. Thực hiện thống kê suy luận
+
+##### a. Tính giá trị Z score và p-Value cho các biến
+
+```{r}
+# Z score
+mlogit_output = summary(md_mlogit1)
+z <- mlogit_output$coefficients/mlogit_output$standard.errors
+p <- (1-pnorm(abs(z),0,1))*2 
+print(z, digits=2)
+```
+
+```{r}
+print(p, digits=2)
+```
+
+p-Value cho chất lượng cho thấy axit citric và residual sugar (cho ba phân khúc chất lượng) không có ý nghĩa. Bây giờ ta sẽ khám phá toàn bộ tập dữ liệu và phân tích xem liệu chúng ta có thể loại bỏ bất kỳ biến nào không góp phần vào hiệu suất của mô hình hay không.
+
+```{r}
+Pquality5 <- rbind(mlogit_output$coefficients[2, ],mlogit_output$standard.errors[2, ],z[2, ],p[2, ])
+rownames(Pquality5) <- c("Coefficient","Std. Errors","z stat","p value")
+Pquality5 = as.data.frame(Pquality5)
+Pquality5
+```
+
+##### b. Tính toán tỷ lệ chênh lệch (trích xuất các hệ số từ mô hình và lấy lũy thừa)
+
+```{r}
+oddsML <- exp(coef(mlogit_output))
+print(oddsML, digits =2)
+```
+
+Tỷ lệ risk/odds cho việc tăng một đơn vị biến residual_sugar là 0.46 cho việc thuộc nhóm chất lượng kém (poor) so với bình thường (normal). Nghĩa là việc tăng một đơn vị residual_sugar làm giảm khả năng thuộc nhóm chất lượng kém đi 54%.
+
+Tỷ lệ risk/odds cho việc tăng một đơn vị biến alcohol là 0.73 cho việc thuộc nhóm chất lượng kém (poor) so với bình thường (normal). Nghĩa là việc tăng một đơn vị alcohol làm giảm khả năng thuộc nhóm chất lượng kém đi 27%.
+
+Kết luận:
+Các biến residual_sugar và alcohol có ảnh hưởng tiêu cực đến chất lượng rượu vang.
+Việc tăng residual_sugar có ảnh hưởng tiêu cực mạnh hơn việc tăng alcohol đến chất lượng rượu vang.
+
+#### IV.3.3.3. Tính toán các biến quan trọng
+
+Thực hiện tính toán trên các biến quan trọng sử dụng hàm Caret:
+
+```{r}
+mostImportantVariables <- varImp(md_mlogit1)
+mostImportantVariables$Variables <- row.names(mostImportantVariables)
+mostImportantVariables <- mostImportantVariables[order(-mostImportantVariables$Overall),]
+print(head(mostImportantVariables))
+```
+
+Tầm quan trọng của những đặc điểm này trong việc phân loại chất lượng rượu vang có thể được quy cho các thuộc tính hóa học và sinh học của chúng, ảnh hưởng đến tính chất tổng thể và chất lượng được cảm nhận của rượu vang. Dưới đây là một lời giải thích ngắn gọn cho mỗi đặc điểm:
+
+  Cấp độ 1: Các đặc điểm có tác động cao
+  
+    -   density (Mật độ): Mật độ, hay trọng lượng riêng, là thước đo khối lượng của một chất trên một đơn vị thể tích. Trong rượu vang, mật độ bị ảnh hưởng bởi các yếu tố như hàm lượng đường, hàm lượng cồn và độ chua. Rượu vang có mật độ cao hơn có thể cho thấy hàm lượng đường hoặc cồn cao hơn, điều này có thể góp phần tạo nên rượu vang đậm đà, đầy đặn hơn. Rượu vang có mật độ thấp hơn có thể cho thấy hàm lượng đường hoặc cồn thấp hơn, điều này có thể dẫn đến rượu vang nhẹ nhàng, thanh tao hơn. Mật độ là một yếu tố quan trọng trong phân loại rượu vang, vì nó có thể cung cấp thông tin chi tiết về độ ngọt, độ đậm đà và chất lượng tổng thể của rượu vang.
+
+    -   residual_sugar (Đường dư): Đường dư là lượng đường còn lại trong rượu vang sau khi quá trình lên men hoàn tất. Đây là một yếu tố chính trong việc xác định độ ngọt của rượu vang, điều này có thể có tác động đáng kể đến chất lượng được cảm nhận của rượu vang. Rượu vang có hàm lượng đường dư cao hơn có thể ngọt hơn và đậm đà hơn, trong khi rượu vang có hàm lượng đường dư thấp hơn có thể khô hơn và thanh tao hơn. Đường dư là một yếu tố dự đoán quan trọng về chất lượng rượu vang, vì nó có thể cung cấp thông tin chi tiết về sự cân bằng, độ phức tạp và tính chất tổng thể của rượu vang.
+
+    -   color (Màu sắc): Màu sắc của rượu vang là một khía cạnh quan trọng của tính chất tổng thể và chất lượng được cảm nhận của rượu vang. Màu sắc của rượu vang bị ảnh hưởng bởi giống nho, tiếp xúc với vỏ và quá trình lão hóa. Các màu sắc khác nhau có thể cho thấy các cấu trúc hương vị, mức độ tannin và tiềm năng lão hóa khác nhau. Trong phân loại rượu vang, màu sắc là một yếu tố chính trong việc phân biệt giữa các phong cách rượu vang và mức độ chất lượng khác nhau.
+
+  Cấp độ 2: Các đặc điểm có tác động trung bình
+  
+    -   volatile_acidity (Độ chua dễ bay hơi): Độ chua dễ bay hơi đề cập đến lượng axit axetic và các hợp chất khác góp phần tạo nên hương thơm và hương vị của rượu vang. Nồng độ axit dễ bay hơi cao có thể khiến rượu vang có vị khó chịu, chua như giấm. Mặt khác, nồng độ vừa phải có thể thêm độ phức tạp và tính chất cho rượu vang. Trong phân loại rượu vang, độ chua dễ bay hơi là một yếu tố quan trọng trong việc xác định chất lượng và phong cách của rượu vang.
+
+    -   alcohol (Cồn): Hàm lượng cồn là một yếu tố quan trọng trong việc xác định chất lượng rượu vang, vì nó có thể ảnh hưởng đến độ đậm đà, hương vị và hương thơm của rượu vang. Hàm lượng cồn cao hơn có thể góp phần tạo nên rượu vang đậm đà, mạnh mẽ hơn, trong khi hàm lượng cồn thấp hơn có thể dẫn đến rượu vang nhẹ nhàng, thanh tao hơn. Hàm lượng cồn cũng là một yếu tố dự đoán quan trọng về phong cách rượu vang, vì các vùng sản xuất rượu vang và giống nho khác nhau được biết đến là sản xuất rượu vang với mức độ cồn riêng biệt.
+
+  Cấp độ 3: Các đặc điểm có tác động thấp
+  
+    -   fixed_acidity (Độ chua cố định): Độ chua cố định đề cập đến các axit không dễ bay hơi có trong rượu vang, chẳng hạn như axit tartaric và axit malic. Những axit này đóng vai trò quan trọng trong việc duy trì sự cân bằng, độ tươi mát và tiềm năng lão hóa của rượu vang. Trong phân loại rượu vang, độ chua cố định là một yếu tố quan trọng trong việc xác định chất lượng và phong cách của rượu vang.
+
+Những đặc điểm này rất quan trọng bởi vì chúng ảnh hưởng đến các thuộc tính hóa học và sinh học của rượu vang, điều này lại ảnh hưởng đến hương vị, hương thơm và tính chất tổng thể của rượu vang. Hiểu rõ tầm quan trọng của những đặc điểm này trong việc dự đoán chất lượng rượu vang có thể giúp các nhà sản xuất rượu vang và chuyên gia rượu vang tối ưu hóa quy trình sản xuất của họ và đưa ra quyết định sáng suốt hơn về phân loại rượu vang. Bằng cách tập trung vào các yếu tố như mật độ, đường dư và màu sắc, các nhà sản xuất rượu vang có thể tạo ra rượu vang có nhiều khả năng được coi là có chất lượng cao và hấp dẫn người tiêu dùng. Ngoài ra, việc hiểu rõ tác động của cồn và độ chua đến chất lượng rượu vang có thể giúp các nhà sản xuất rượu vang tạo ra rượu vang cân bằng, ổn định và có khả năng lão hóa tốt hơn. Hãy nhớ rằng chất lượng rượu vang là một khái niệm phức tạp và đa chiều, và nhiều yếu tố khác có thể ảnh hưởng đến nó, bao gồm giống nho, thổ nhưỡng, kỹ thuật sản xuất rượu vang và nhiều hơn nữa. Tuy nhiên, sáu đặc điểm này cung cấp một nền tảng vững chắc để hiểu rõ các khía cạnh hóa học và sinh học của chất lượng rượu vang.
+
+#### IV.3.3.4. Lean Multinomial Model
+
+Sử dụng 4 biến quan trọng nhất để làm các biến chính xây dựng một mô hình tinh gọn với số lượng biến ít hơn:
+
+```{r}
+md_mlogit2 = nnet::multinom(segmentation ~ density + residual_sugar + color + alcohol,
+                            data = datatrain_scaled, maxit = 1000)
+```
+
+```{r}
+summary(md_mlogit2)
+```
+
+#### IV.3.3.5. Đánh giá các Multinomial Logistics Models
+
+```{r}
+mlogit_ModelFit<- rbind(pscl::pR2(md_mlogit1)[1:6],pscl::pR2(md_mlogit2)[1:6])
+```
+
+```{r}
+rownames(mlogit_ModelFit) <- c("Model-1", "Model-2")
+print(mlogit_ModelFit, digits = 2)
+```
+
+#### IV.3.3.6. Tính toán sai số của Multinomial Model
+
+```{r}
+mlogit1_output = summary(md_mlogit1)
+mlogit2_output = summary(md_mlogit2)
+mlogit_ModelError <- as.data.frame(rbind(cbind(mlogit1_output$deviance,mlogit1_output$AIC)),cbind(mlogit2_output$deviance,mlogit2_output$AIC))
+                                   
+names(mlogit_ModelError) <- c("Deviance", "AIC")
+print(mlogit_ModelError, digits = 3)
+
+```
+
+Ta quan sát thấy mô hình md_mlogit1 với tất cả các biến có điểm McFadden và r2 scores cao nhất (0,20), đồng thời độ lệch chuẩn và AIC thấp nhất.
+
+#### IV.3.3.7. Tiên đoán xác suất phân loại và dự đoán kết quả phân loại
+
+Giả sử ta có nồng độ phần trăm các chất tan có trong rượu
+
+```{r}
+new_data_wine = head(datatest_scaled, 5)
+new_data_wine
+```
+
+Với actual segmentation là:
+
+```{r}
+new_data_wine$segmentation
+```
+
+Khi đó, ta tiên đoán xác suất phân loại như sau:
+
+```{r}
+new_data_wine = head(datatest_scaled, 5)
+out_prob_mlogit_wine = predict(md_mlogit1, new_data_wine, type = "prob")
+out_prob_mlogit_wine
+```
+
+Và nhóm dự đoán là:
+
+```{r}
+out_class_mlogit_wine <- predict(md_mlogit1, newdata = new_data_wine, type = "class")
+out_class_mlogit_wine
+```
+
+#### IV.3.3.8. Đánh giá mô hình
+
+Confusion matrix
+
+```{r}
+predictedML <- predict(md_mlogit1, datatest_scaled, na.action =na.pass, type="probs")
+predicted_classML <- predict(md_mlogit1, datatest_scaled)
+
+caret::confusionMatrix(as.factor(predicted_classML), as.factor(datatest_scaled$segmentation))
+```
+
+Tỉ lệ chính xác:
+
+```{r}
+mean(as.character(predicted_classML) != as.character(datatest_scaled$segmentation))
+```
+
+Confusion Matrix cho thấy mô hình Multinominal Logist với tất cả các biến có accuracy là 57.59% và tỷ lệ accuracy khoảng 42,41%.
+
+
+## IV.4. Nhận xét và kết luận về kết quả thu được sau quá trình phân tích
+
+Một số nhận xét có thể rút ra sau quá trình phân tích:
+
+- Nhận thấy có sự khác biệt giữa thành phần rượu vang đỏ và rượu vang trắng. Rượu vang đỏ chứa nồng độ clorua và sunfat cao, trong khi, rượu vang trắng có đặc điểm là hàm lượng axit dễ bay hơi thấp. Tuy nhiên, không có sự kết hợp nào giữa các thành phần này ảnh hưởng đến chất lượng rượu một cách đáng kể. Hay nói cách khác là, các thành phần này ảnh hưởng đến chất lượng rượu vang một cách độc lập với màu rượu (do đó, có thể sử dụng chung một model dự đoán chất lượng cho cả hai loại rượu vang đỏ và rượu vang trắng).
+
+- Quá trình phân tích và xây dựng mô hình còn cho thấy các feature quan trọng có ảnh hưởng nhiều nhất đến chất lượng rượu vang được xác định là:
+
+  +) Mật độ (denstity): Rượu vang có mật độ cao hơn có thể cho thấy hàm lượng đường hoặc cồn cao hơn, điều này có thể góp phần tạo nên hương vị rượu vang đậm đà, đầy đặn hơn. Do đó, mật độ là một yếu tố quan trọng trong phân loại rượu vang, vì nó có thể cung cấp thông tin chi tiết về độ ngọt, độ đậm đà và chất lượng tổng thể của rượu vang.
+  
+  +) Độ cồn (alcohol): Hàm lượng cồn là một yếu tố dự đoán quan trọng về phong cách rượu vang, vì các vùng sản xuất rượu vang và giống nho khác nhau được biết đến là sản xuất rượu vang với mức độ cồn riêng biệt. Hàm lượng cồn cao hơn cũng góp phần tạo nên hương vị rượu vang đậm đà, mạnh mẽ hơn.
+  
+  +) Hàm lượng đường dư (residual_sugar): Đường dư là lượng đường còn lại trong rượu vang sau khi quá trình lên men hoàn tất. Đây là yếu tố chính trong việc xác định độ ngọt của rượu vang, điều này có thể có tác động đáng kể đến chất lượng được cảm nhận của rượu vang.
+  
+  +) Độ axit dễ bay hơi (volatile_acidity): Độ chua dễ bay hơi đề cập đến lượng axit axetic và các hợp chất khác góp phần tạo nên hương thơm và hương vị của rượu vang. Nồng độ axit dễ bay hơi cao có thể khiến rượu vang có vị khó chịu, chua như giấm. Mặt khác, nồng độ vừa phải có thể thêm độ phức tạp và chiều sâu cho hương vị của rượu vang.
+  
+  +) Màu rượu vang (color): Màu sắc của rượu vang bị ảnh hưởng bởi giống nho, do nó tiếp xúc trực tiếp với vỏ và quá trình lên men. Các màu sắc khác nhau có thể cho thấy các cấu trúc hương vị, mức độ tannin và tiềm năng lên men khác nhau.
+
+- Từ đó, ta xây dựng thành công các mô hình hồi quy và phân loại với độ chính xác tương đối. Trong đó:
+
+  +) Với mô hình hồi quy:
+  
+  | Mô hình | RMSE | MAE | R-squared | Accuracy |
+  |---|---|---|---|---|
+  | Linear Regression | 0.8064 | 0.5271 |	0.2156 | 0.2135
+  | Hồi quy đa thức | 0.7625 | 0.4812 | 0.2463 | 0.2256
+  | Ridge Regression | 0.8032 | 0.5293 | 0.2120 | 0.2105
+  
+  Hồi quy đa thức là mô hình đạt hiệu suất tốt nhất với điểm RMSE và MAE thấp nhất (0.7625 và 0.4812) chỉ ra khả năng dự đoán chất lượng rượu vang với sai số ít hơn so với các mô hình khác, và độ chính xác (0.2256) cao hơn so với các mô hình khác. Điều này đúng như dự đoán, vì hồi quy đa thức có khả năng mô hình hoá mối quan hệ phi tuyến, đây có thể là yếu tố giúp mô hình dự đoán chính xác hơn với thực tế.
+  
+  +) Với mô hình phân loại:
+  
+  | Mô hình | Accuracy |
+  |---|---|
+  | Gaussian Naive Bayes | 0.5023 |
+  | Kernel Naive Bayes | 0.5564 |
+  | LDA | 0.5805 |
+  | Multinomial Logistic | 0.5759 |
+  
+  LDA là mô hình phân loại đạt độ chính xác cao nhất (0.5805), chỉ ra khả năng phân loại chất lượng rượu vang chính xác hơn so với các mô hình khác. LDA là mô hình phân loại tuyến tính, cho phép giải thích dễ dàng hơn về mối quan hệ giữa các thành phần lý hóa sinh và chất lượng rượu vang. Ngoài ra, LDA có khả năng tính toán hiệu quả, phù hợp cho các ứng dụng thực tế cần xử lý lượng dữ liệu lớn.
+
+- Tuy nhiên, các mô hình dự đoán chất lượng rượu vang hiện tại có tiềm năng nhưng vẫn còn một số hạn chế. Để cải thiện độ chính xác và khả năng tổng quát của mô hình, cần bổ sung thêm các yếu tố quan trọng khác, đồng thời nghiên cứu kỹ lưỡng hơn về mối liên hệ giữa các yếu tố này và chất lượng rượu vang. Việc thu thập thêm dữ liệu và áp dụng các kỹ thuật học máy tiên tiến hơn cũng có thể góp phần nâng cao hiệu quả của mô hình.
+
+- Không có thông số có thể được xem là có ảnh hưởng đáng kể đến chất lượng rượu vang (corr của tất cả các thông số với quality đều < 0.5). Vì vậy, có thể kết luận rằng chất lượng rượu chủ yếu phụ thuộc vào sở thích cá nhân của các chuyên gia đánh giá. Do đó, có thể cần xem xét lại việc lựa chọn các feature, và thay vào đó, ta có thể ghi nhận thêm những feature mới khác, chẳng hạn như loại nho, năm sản xuất, thời gian ủ, hay thậm chí là các thông số liên quan đến điều kiện uống rượu như nhiệt độ hoặc độ ẩm để phân tích và xây dựng được các mô hình tốt hơn.
+
+- Ngoài ra, có thể thấy chất lượng rượu vang là một khái niệm phức tạp và mang tính chủ quan, phụ thuộc vào nhiều yếu tố khác nhau. Do đó, việc sử dụng mô hình dự đoán chỉ nên được xem như một công cụ hỗ trợ, cần kết hợp thêm với đánh giá của chuyên gia và sở thích cá nhân để có thể đưa ra các đánh giá chính xác nhất về chất lượng rượu vang.
+
+
+Một số đề xuất cải thiện mô hình:
+
+- Bổ sung các yếu tố quan trọng: Loại nho, năm sản xuất, thời gian ủ, điều kiện bảo quản, nhiệt độ uống, độ ẩm,...
+
+- Nghiên cứu mối liên hệ giữa các yếu tố: Phân tích kỹ lưỡng hơn về mối liên hệ giữa các yếu tố được xác định và chất lượng rượu vang.
+
+- Thu thập thêm dữ liệu: Thu thập thêm dữ liệu về các loại rượu vang khác nhau và đánh giá của chuyên gia để cải thiện độ chính xác của mô hình.
+
+
+# **V. Đề xuất các phương pháp cải tiến sản phẩm và chiến lược kinh doanh**
+
+### 1. Cải tiến sản phẩm
+
+**Tinh chỉnh thành phần**: Việc điều chỉnh mức độ, tỉ lệ của các thành phần có ảnh hưởng chính như nồng độ cồn, độ axit và độ pH có thể giúp đạt được các mục tiêu cải thiện chất lượng cụ thể.
+
+**Tối ưu hoá quá trình lên men**: Giám sát và tối ưu hóa các thành phần chính trong quá trình lên men để đạt được hương vị và mùi thơm mong muốn.
+
+**Giảm thiểu các thành phần không mong muốn**: Việc giải quyết các yếu tố góp phần tạo ra các thuộc tính không mong muốn, chẳng hạn như độ axit dễ bay hơi, có thể giúp tạo ra rượu vang có chất lượng tốt hơn.
+
+### 2. Chiến lược tiếp thị
+
+**Phân khúc khách hàng**: Sử dụng xếp hạng chất lượng được mô hình dự đoán để phân loại rượu thành các phân khúc chất lượng, cho phép tiếp thị có mục tiêu đến tập khách hàng phù hợp.
+
+**Lấy các thuộc tính chính làm USP (Unique Selling Point) của sản phẩm**: Tận dụng các thuộc tính có ảnh hưởng nhất được mô hình xác định trong các kế hoạch tiếp thị để thu hút người tiêu dùng đang tìm kiếm những tính chất sản phẩm cụ thể.
+
+### 3. Chiến lược thu hút khách hàng
+
+**Đề xuất rượu vang**: Cung cấp các đề xuất rượu được cá nhân hóa cho khách hàng dựa trên sở thích và các giao dịch mua trước đây của họ.
+
+**Tạo nội dung có giá trị giáo dục**: Giáo dục người tiêu dùng về tầm quan trọng của các thuộc tính khác nhau trong chất lượng rượu vang, thúc đẩy sự đánh giá và hiểu biết sâu sắc hơn về rượu.
+
+### 4. Tối ưu hoá quy trình sản xuất
+
+**Giám sát thời gian thực**: Triển khai giám sát thời gian thực các thuộc tính chính trong quá trình sản xuất để phát hiện sai lệch và điều chỉnh kịp thời.
+
+**Phân tích dự đoán**: Sử dụng mô hình để dự đoán các vấn đề chất lượng tiềm ẩn một cách chủ động trước khi chúng xảy ra, từ đó kịp thời can thiệp.
+
+### 5. Đảm bảo quy trình kiểm tra chất lượng
+
+**Kiểm tra tính nhất quán**: Sử dụng mô hình để theo dõi tính nhất quán của chất lượng rượu theo thời gian giữa các lô.
+
+**Kiểm soát chất lượng**: Thực hiện các quy trình kiểm soát chất lượng dựa trên xếp hạng chất lượng dự đoán để đảm bảo rằng chỉ những loại rượu đáp ứng các tiêu chuẩn nhất định mới được xuất xưởng.
+
